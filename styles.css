@@ -1,3 +1,4 @@
+
 /* Reset and base styles */
 * {
     margin: 0;
@@ -7,17 +8,20 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f5f5f5;
-    color: #333;
-    line-height: 1.4;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+    color: #1e293b;
+    line-height: 1.5;
+    min-height: 100vh;
 }
 
 /* Navigation Bar */
 .navbar {
-    background-color: #002856;
-    color: white;
-    padding: 12px 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    color: #1e293b;
+    padding: 16px 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
 .nav-container {
@@ -25,7 +29,7 @@ body {
     margin: 0 auto;
     padding: 0 20px;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
 }
 
@@ -40,12 +44,47 @@ body {
     margin-right: 8px;
     font-weight: 800;
     letter-spacing: -0.5px;
-    color: white;
+    color: #1e293b;
 }
 
 .sports-text {
-    color: #e5e7eb;
+    color: #64748b;
     font-weight: 600;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 32px;
+}
+
+.nav-item {
+    margin: 0;
+}
+
+.nav-link {
+    color: #64748b;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 8px 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: block;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-link:hover {
+    color: #1e293b;
+    border-bottom-color: #cbd5e1;
+}
+
+.nav-link.active {
+    color: #1e293b;
+    border-bottom-color: #3b82f6;
+    font-weight: 700;
 }
 
 /* Main Content */
@@ -56,15 +95,78 @@ body {
 }
 
 .page-header {
-    padding: 30px 0;
+    padding: 40px 0;
     text-align: left;
 }
 
 .page-header h1 {
-    font-size: 32px;
-    font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 8px;
+    font-size: 36px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #1e293b 0%, #64748b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Week Filter */
+.week-filter {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 32px;
+}
+
+.week-filter-container {
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.week-dropdown {
+    appearance: none;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 40px 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    backdrop-filter: blur(10px);
+    min-width: 120px;
+}
+
+.week-dropdown:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+}
+
+.week-dropdown:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.dropdown-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #64748b;
+    transition: all 0.3s ease;
+}
+
+.week-dropdown:hover + .dropdown-arrow {
+    color: #1e293b;
 }
 
 /* Layout Container */
@@ -90,54 +192,116 @@ body {
 
 /* Game Card */
 .game-card {
-    background: white;
-    border-radius: 12px;
-    padding: 10px 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border: 1px solid #e5e7eb;
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    z-index: -1;
+    transition: all 0.4s ease;
 }
 
 .game-card:hover:not(.selected) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+    border-color: #cbd5e1;
+}
+
+.game-card:hover:not(.selected)::before {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
 }
 
 .game-card.selected {
     border-color: #3b82f6;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
-    background: linear-gradient(to right, #ffffff, #f8faff);
+    box-shadow: 0 16px 48px rgba(59, 130, 246, 0.15);
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    transform: translateY(-2px);
+}
+
+.game-card.live {
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+}
+
+.game-card.live.selected {
+    border-left: 4px solid #10b981;
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
 }
 
 
 /* Game Status */
 .game-status {
     text-align: center;
-    margin-bottom: 6px;
+    margin-bottom: 12px;
     transition: all 0.3s ease;
 }
 
 .status-main {
-    font-size: 10px;
-    font-weight: 600;
-    color: #dc2626;
+    font-size: 11px;
+    font-weight: 700;
+    color: #ef4444;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    position: relative;
+}
+
+.status-main.live {
+    color: #10b981;
+}
+
+.status-main.live::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: livePulse 2s infinite;
+}
+
+@keyframes livePulse {
+    0%, 100% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: translateY(-50%) scale(1.2);
+    }
 }
 
 .status-network {
-    font-size: 9px;
-    color: #6b7280;
-    margin-top: 1px;
+    font-size: 10px;
+    color: #64748b;
+    margin-top: 2px;
 }
 
 /* Teams Container */
 .teams-container {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-bottom: 6px;
+    gap: 8px;
+    margin-bottom: 16px;
     transition: all 0.3s ease;
 }
 
@@ -145,8 +309,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 0;
+    padding: 8px 0;
     transition: all 0.3s ease;
+    border-radius: 8px;
 }
 
 .team-info {
@@ -156,33 +321,34 @@ body {
 }
 
 .team-logo {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
-    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    margin-right: 12px;
+    border-radius: 6px;
     object-fit: contain;
     transition: all 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
 .team-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1f2937;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
     transition: all 0.3s ease;
 }
 
 .team-record {
-    font-size: 10px;
-    color: #6b7280;
-    margin-left: 6px;
+    font-size: 11px;
+    color: #64748b;
+    margin-left: 8px;
     transition: all 0.3s ease;
 }
 
 .team-score {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1f2937;
-    min-width: 24px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #1e293b;
+    min-width: 32px;
     text-align: right;
     transition: all 0.3s ease;
 }
@@ -191,11 +357,11 @@ body {
 .game-details {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    font-size: 9px;
-    color: #6b7280;
-    border-top: 1px solid #f3f4f6;
-    padding-top: 8px;
+    gap: 16px;
+    font-size: 10px;
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 12px;
     transition: all 0.3s ease;
 }
 
@@ -205,22 +371,28 @@ body {
 
 .detail-label {
     display: block;
-    font-weight: 500;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .detail-value {
-    margin-top: 1px;
-    font-weight: 400;
+    margin-top: 2px;
+    font-weight: 500;
+    color: #1e293b;
 }
 
 /* Selection Hint */
 .select-hint {
     text-align: center;
     font-size: 10px;
-    color: #6b7280;
-    margin-top: 4px;
+    color: #94a3b8;
+    margin-top: 8px;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.3s ease;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .game-card:hover:not(.selected) .select-hint {
@@ -230,13 +402,14 @@ body {
 /* Details Panel */
 .details-panel {
     flex: 0 0 52%;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    border: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 20px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+    backdrop-filter: blur(20px);
     opacity: 0;
     transform: translateX(20px);
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     height: 90vh;
     overflow: hidden;
     position: sticky;
@@ -252,9 +425,10 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #e5e7eb;
-    background: linear-gradient(to right, #f8faff, #ffffff);
+    padding: 24px;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    backdrop-filter: blur(10px);
 }
 
 .details-title {
@@ -304,17 +478,17 @@ body {
 
 .details-header h3 {
     margin: 0;
-    color: #1f2937;
+    color: #1e293b;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 700;
     text-align: center;
 }
 
 .header-status {
     text-align: center;
     font-size: 12px;
-    color: #dc2626;
-    font-weight: 600;
+    color: #ef4444;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-top: 4px;
@@ -324,16 +498,17 @@ body {
     background: none;
     border: none;
     font-size: 24px;
-    color: #6b7280;
+    color: #64748b;
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
 }
 
 .close-btn:hover {
-    background-color: #f3f4f6;
-    color: #1f2937;
+    background-color: #f1f5f9;
+    color: #1e293b;
+    transform: scale(1.1);
 }
 
 .details-body {
@@ -540,10 +715,42 @@ body {
     padding: 12px 0;
     border-bottom: 1px solid #f1f5f9;
     font-size: 14px;
+    transition: all 0.3s ease;
 }
 
 .play-item:last-child {
     border-bottom: none;
+}
+
+.play-item.new-play {
+    animation: slideInNew 2s ease-out;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-radius: 8px;
+    margin: 4px 0;
+    padding: 16px 12px;
+    border: 1px solid #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+@keyframes slideInNew {
+    0% {
+        transform: translateX(-100%) scale(0.9);
+        opacity: 0;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border-color: #f59e0b;
+    }
+    50% {
+        transform: translateX(10px) scale(1.05);
+        opacity: 0.8;
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        border-color: #2563eb;
+    }
+    100% {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border-color: #3b82f6;
+    }
 }
 
 .play-time {
@@ -561,6 +768,74 @@ body {
 .play-description {
     color: #4b5563;
     line-height: 1.4;
+}
+
+.new-play .play-time,
+.new-play .play-team,
+.new-play .play-description {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+/* Latest Play on Game Cards */
+.latest-play {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    font-size: 12px;
+    opacity: 1;
+    height: 36px;
+    position: relative;
+    overflow: hidden;
+}
+
+.latest-play-wrapper {
+    position: relative;
+    height: 100%;
+    transition: transform 1s ease-out;
+}
+
+.latest-play.new-play-card .latest-play-wrapper {
+    animation: slideUpAndPush 1s ease-out;
+}
+
+@keyframes slideUpAndPush {
+    0% {
+        transform: translateY(100%);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.latest-play-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.2;
+    padding: 12px 0;
+    height: 36px;
+    box-sizing: border-box;
+}
+
+.play-team-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.play-desc-mini {
+    color: #64748b;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.3;
+    font-size: 12px;
 }
 
 /* Stats Grid */
@@ -729,6 +1004,27 @@ body {
         font-size: 20px;
     }
     
+    .nav-menu {
+        gap: 4px;
+        padding: 3px;
+    }
+    
+    .nav-link {
+        font-size: 13px;
+        padding: 8px 16px;
+        min-width: 80px;
+    }
+    
+    .week-filter-container {
+        align-items: flex-start;
+    }
+    
+    .week-dropdown {
+        font-size: 14px;
+        padding: 10px 32px 10px 14px;
+        min-width: 110px;
+    }
+    
     .details-header {
         padding: 16px;
     }
@@ -797,12 +1093,57 @@ body {
 }
 
 @media (max-width: 480px) {
+    .nav-container {
+        flex-direction: column;
+        gap: 16px;
+        padding: 0 16px;
+    }
+    
+    .page-header h1 {
+        font-size: 28px;
+        text-align: center;
+    }
+    
+    .week-filter-container {
+        width: 100%;
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+    
+    .week-dropdown {
+        font-size: 13px;
+        padding: 8px 28px 8px 12px;
+        min-width: 100px;
+    }
+    
     .team-name {
-        font-size: 12px;
+        font-size: 13px;
     }
     
     .team-score {
-        font-size: 16px;
+        font-size: 18px;
+    }
+    
+    .game-card {
+        padding: 16px;
+    }
+    
+    .latest-play {
+        height: 32px;
+    }
+    
+    .latest-play-content {
+        padding: 10px 0;
+        height: 32px;
+    }
+    
+    .play-team-logo {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .play-desc-mini {
+        font-size: 11px;
     }
     
     .video-title {

@@ -26,6 +26,8 @@ const teamLogos = {
 
 // Game state management
 let selectedGameIndex = -1;
+let liveUpdateIntervals = new Map();
+let gamePlayHistories = new Map();
 
 // NFL Game Data with additional games
 const nflGames = [
@@ -312,18 +314,85 @@ const nflGames = [
     }
 ];
 
+// Helper function to determine if a game is live
+function isGameLive(game) {
+    const status = game.status.main;
+    // Live games have quarter and time (e.g., "1ST 14:32", "2ND 8:15", "3RD 11:22", "4TH 5:43")
+    // or contain halftime/overtime indicators
+    return /^\d+(ST|ND|RD|TH)\s+\d+:\d+$/.test(status) || 
+           status.includes('HALFTIME') || 
+           status.includes('OT ');
+}
+
+// Sort games with live games first
+function getSortedGames() {
+    return [...nflGames].sort((a, b) => {
+        const aLive = isGameLive(a);
+        const bLive = isGameLive(b);
+        
+        if (aLive && !bLive) return -1;
+        if (!aLive && bLive) return 1;
+        return 0; // Maintain original order within live/non-live groups
+    });
+}
+
+// Generate live play data
+function generateLivePlay(game) {
+    const teams = [game.homeTeam.shortName, game.awayTeam.shortName];
+    const team = teams[Math.floor(Math.random() * teams.length)];
+    
+    const playTypes = [
+        `${Math.floor(Math.random() * 25) + 5} yard pass to ${getRandomPlayerName()}`,
+        `${Math.floor(Math.random() * 15) + 1} yard rush by ${getRandomPlayerName()}`,
+        `${Math.floor(Math.random() * 50) + 20} yard field goal - GOOD`,
+        `${Math.floor(Math.random() * 40) + 15} yard touchdown pass to ${getRandomPlayerName()}`,
+        `${Math.floor(Math.random() * 20) + 1} yard touchdown run by ${getRandomPlayerName()}`,
+        `Incomplete pass intended for ${getRandomPlayerName()}`,
+        `Punt for ${Math.floor(Math.random() * 30) + 35} yards`,
+        `Sack for ${Math.floor(Math.random() * 8) + 3} yard loss`,
+        `Penalty: False start on ${getRandomPlayerName()}`,
+        `Fumble recovered by ${team}`
+    ];
+    
+    const quarters = ['1st', '2nd', '3rd', '4th'];
+    const quarter = quarters[Math.floor(Math.random() * quarters.length)];
+    const minutes = Math.floor(Math.random() * 15);
+    const seconds = Math.floor(Math.random() * 60);
+    const time = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    return {
+        quarter,
+        time,
+        team,
+        description: playTypes[Math.floor(Math.random() * playTypes.length)],
+        timestamp: Date.now(),
+        isNew: true
+    };
+}
+
+function getRandomPlayerName() {
+    const names = ['Johnson', 'Williams', 'Davis', 'Thompson', 'Martinez', 'Anderson', 'Wilson', 'Brown', 'Smith', 'Jones', 'Miller', 'Garcia', 'Rodriguez', 'Lewis', 'Walker'];
+    return names[Math.floor(Math.random() * names.length)];
+}
+
 // Generate sample detailed game data
 function getGameDetails(game, gameIndex) {
-    const plays = [
-        { quarter: '1st', time: '12:34', team: game.awayTeam.shortName, description: `15 yard pass to Johnson` },
-        { quarter: '1st', time: '11:22', team: game.homeTeam.shortName, description: `3 yard rush by Williams` },
-        { quarter: '2nd', time: '8:45', team: game.awayTeam.shortName, description: `27 yard field goal - GOOD` },
-        { quarter: '2nd', time: '5:12', team: game.homeTeam.shortName, description: `42 yard touchdown pass to Davis` },
-        { quarter: '3rd', time: '14:30', team: game.awayTeam.shortName, description: `18 yard rush by Thompson` },
-        { quarter: '3rd', time: '9:15', team: game.homeTeam.shortName, description: `35 yard field goal - GOOD` },
-        { quarter: '4th', time: '6:42', team: game.awayTeam.shortName, description: `8 yard touchdown run by Martinez` },
-        { quarter: '4th', time: '2:18', team: game.homeTeam.shortName, description: `Interception returned 25 yards` }
-    ];
+    // Initialize play history if not exists
+    if (!gamePlayHistories.has(gameIndex)) {
+        const initialPlays = [
+            { quarter: '1st', time: '12:34', team: game.awayTeam.shortName, description: `15 yard pass to Johnson`, timestamp: Date.now() - 1800000 },
+            { quarter: '1st', time: '11:22', team: game.homeTeam.shortName, description: `3 yard rush by Williams`, timestamp: Date.now() - 1740000 },
+            { quarter: '2nd', time: '8:45', team: game.awayTeam.shortName, description: `27 yard field goal - GOOD`, timestamp: Date.now() - 1620000 },
+            { quarter: '2nd', time: '5:12', team: game.homeTeam.shortName, description: `42 yard touchdown pass to Davis`, timestamp: Date.now() - 1500000 },
+            { quarter: '3rd', time: '14:30', team: game.awayTeam.shortName, description: `18 yard rush by Thompson`, timestamp: Date.now() - 1380000 },
+            { quarter: '3rd', time: '9:15', team: game.homeTeam.shortName, description: `35 yard field goal - GOOD`, timestamp: Date.now() - 1260000 },
+            { quarter: '4th', time: '6:42', team: game.awayTeam.shortName, description: `8 yard touchdown run by Martinez`, timestamp: Date.now() - 1140000 },
+            { quarter: '4th', time: '2:18', team: game.homeTeam.shortName, description: `Interception returned 25 yards`, timestamp: Date.now() - 1020000 }
+        ];
+        gamePlayHistories.set(gameIndex, initialPlays);
+    }
+    
+    const plays = gamePlayHistories.get(gameIndex);
     
     const boxScore = {
         [game.awayTeam.shortName]: { 
@@ -345,9 +414,93 @@ function getGameDetails(game, gameIndex) {
     return { plays, boxScore };
 }
 
+// Start live updates for a game with random timing
+function startLiveUpdates(gameIndex) {
+    const sortedGames = getSortedGames();
+    const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
+    const game = sortedGames[gameIndex];
+    
+    if (!isGameLive(game) || liveUpdateIntervals.has(originalIndex)) {
+        return;
+    }
+    
+    // Create a function that schedules the next update with random timing
+    function scheduleNextUpdate() {
+        // Random interval between 3-7 seconds
+        const randomInterval = Math.random() * 4000 + 3000;
+        
+        const timeout = setTimeout(() => {
+            // Add new play to history
+            const newPlay = generateLivePlay(game);
+            const plays = gamePlayHistories.get(originalIndex) || [];
+            plays.unshift(newPlay); // Add to beginning for most recent first
+            
+            // Keep only last 20 plays
+            if (plays.length > 20) {
+                plays.splice(20);
+            }
+            
+            gamePlayHistories.set(originalIndex, plays);
+            
+            // Always update the layout to show new plays on cards
+            updateLayout();
+            
+            // Update display if this game is currently selected
+            if (selectedGameIndex === gameIndex) {
+                updateDetailsPanel();
+                
+                // Animate in new play on mobile too
+                if (isMobile()) {
+                    updateMobileLayout();
+                }
+            }
+            
+            // Mark play as not new after animation
+            setTimeout(() => {
+                newPlay.isNew = false;
+                // Refresh the display to remove the animation styling
+                updateLayout();
+            }, 1000);
+            
+            // Schedule the next update
+            if (liveUpdateIntervals.has(originalIndex)) {
+                scheduleNextUpdate();
+            }
+            
+        }, randomInterval);
+        
+        // Store the timeout so we can clear it later
+        liveUpdateIntervals.set(originalIndex, timeout);
+    }
+    
+    // Start the first update with a small random delay to stagger initial loads
+    setTimeout(() => {
+        scheduleNextUpdate();
+    }, Math.random() * 2000);
+}
+
+// Stop live updates for a game
+function stopLiveUpdates(gameIndex) {
+    const sortedGames = getSortedGames();
+    const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
+    
+    if (liveUpdateIntervals.has(originalIndex)) {
+        clearTimeout(liveUpdateIntervals.get(originalIndex));
+        liveUpdateIntervals.delete(originalIndex);
+    }
+}
+
+// Stop all live updates
+function stopAllLiveUpdates() {
+    liveUpdateIntervals.forEach(timeout => clearTimeout(timeout));
+    liveUpdateIntervals.clear();
+}
+
 // Create details panel content
 function createDetailsContent(game, gameIndex) {
-    const details = getGameDetails(game, gameIndex);
+    const sortedGames = getSortedGames();
+    const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
+    const details = getGameDetails(game, originalIndex);
     const isGameFinished = game.status.main.includes('FINAL');
     
     const highlightsSection = isGameFinished ? `
@@ -433,7 +586,7 @@ function createDetailsContent(game, gameIndex) {
                 <h4>Recent Plays</h4>
                 <div class="plays-container">
                     ${details.plays.map(play => `
-                        <div class="play-item">
+                        <div class="play-item ${play.isNew ? 'new-play' : ''}">
                             <div class="play-time">${play.quarter} ${play.time}</div>
                             <div class="play-team">${play.team}</div>
                             <div class="play-description">${play.description}</div>
@@ -493,6 +646,13 @@ function toggleGameDetails(gameIndex) {
     } else {
         selectedGameIndex = gameIndex;
         updateLayout();
+        
+        // Start live updates for the selected game if it's live
+        const sortedGames = getSortedGames();
+        const game = sortedGames[gameIndex];
+        if (isGameLive(game)) {
+            startLiveUpdates(gameIndex);
+        }
     }
 }
 
@@ -553,7 +713,9 @@ function updateDetailsPanel() {
 
 // Create mobile details content
 function createMobileDetailsContent(game, gameIndex) {
-    const details = getGameDetails(game, gameIndex);
+    const sortedGames = getSortedGames();
+    const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
+    const details = getGameDetails(game, originalIndex);
     const isGameFinished = game.status.main.includes('FINAL');
     
     const highlightsSection = isGameFinished ? `
@@ -640,7 +802,7 @@ function createMobileDetailsContent(game, gameIndex) {
                     <h4>Recent Plays</h4>
                     <div class="plays-container">
                         ${details.plays.map(play => `
-                            <div class="play-item">
+                            <div class="play-item ${play.isNew ? 'new-play' : ''}">
                                 <div class="play-time">${play.quarter} ${play.time}</div>
                                 <div class="play-team">${play.team}</div>
                                 <div class="play-description">${play.description}</div>
@@ -695,8 +857,9 @@ function populateGamesWithMobileDetails() {
     if (!gamesContainer) return;
     
     let gameCardsHtml = '';
+    const sortedGames = getSortedGames();
     
-    nflGames.forEach((game, index) => {
+    sortedGames.forEach((game, index) => {
         // Add the game card
         gameCardsHtml += createGameCard(game, index);
         
@@ -727,10 +890,36 @@ function populateGamesWithMobileDetails() {
 // Function to create a game card HTML
 function createGameCard(game, gameIndex) {
     const isSelected = selectedGameIndex === gameIndex;
+    const liveGame = isGameLive(game);
     
     const statusHtml = game.status.network 
-        ? `<div class="status-main">${game.status.main}</div><div class="status-network">${game.status.network}</div>`
-        : `<div class="status-main">${game.status.main}</div>`;
+        ? `<div class="status-main ${liveGame ? 'live' : ''}">${game.status.main}</div><div class="status-network">${game.status.network}</div>`
+        : `<div class="status-main ${liveGame ? 'live' : ''}">${game.status.main}</div>`;
+    
+    // Get latest play for live games
+    let latestPlayHtml = '';
+    if (liveGame) {
+        const sortedGames = getSortedGames();
+        const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
+        const plays = gamePlayHistories.get(originalIndex);
+        if (plays && plays.length > 0) {
+            const latestPlay = plays[0];
+            // Find the team logo for the play
+            const playingTeam = latestPlay.team === game.homeTeam.shortName ? game.homeTeam : game.awayTeam;
+            const teamLogoUrl = teamLogos[playingTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + latestPlay.team;
+            
+            latestPlayHtml = `
+                <div class="latest-play ${latestPlay.isNew ? 'new-play-card' : ''}">
+                    <div class="latest-play-wrapper">
+                        <div class="latest-play-content">
+                            <img src="${teamLogoUrl}" alt="${latestPlay.team} logo" class="play-team-logo">
+                            <span class="play-desc-mini">${latestPlay.description}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
     
     const detailsHtml = game.details 
         ? `<div class="game-details">
@@ -744,7 +933,7 @@ function createGameCard(game, gameIndex) {
     const hintText = isSelected ? 'Selected' : 'Click to view details';
 
     return `
-        <div class="game-card ${isSelected ? 'selected' : ''}" 
+        <div class="game-card ${isSelected ? 'selected' : ''} ${liveGame ? 'live' : ''}" 
              data-game-index="${gameIndex}" 
              onclick="toggleGameDetails(${gameIndex})">
             
@@ -776,6 +965,8 @@ function createGameCard(game, gameIndex) {
                 </div>
             </div>
             
+            ${latestPlayHtml}
+            
             ${detailsHtml}
             
             <div class="select-hint">${hintText}</div>
@@ -788,13 +979,25 @@ function populateGames() {
     const gamesContainer = document.getElementById('gamesContainer');
     if (!gamesContainer) return;
     
-    const gameCardsHtml = nflGames.map((game, index) => createGameCard(game, index)).join('');
+    const sortedGames = getSortedGames();
+    const gameCardsHtml = sortedGames.map((game, index) => createGameCard(game, index)).join('');
     gamesContainer.innerHTML = gameCardsHtml;
+}
+
+// Initialize live updates for all live games
+function initializeLiveUpdates() {
+    const sortedGames = getSortedGames();
+    sortedGames.forEach((game, index) => {
+        if (isGameLive(game)) {
+            startLiveUpdates(index);
+        }
+    });
 }
 
 // Initialize the page when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     updateLayout();
+    initializeLiveUpdates();
     
     // Close details panel when pressing Escape key
     document.addEventListener('keydown', function(e) {
@@ -806,5 +1009,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle window resize to switch between mobile/desktop views
     window.addEventListener('resize', function() {
         updateLayout();
+    });
+    
+    // Clean up intervals when page unloads
+    window.addEventListener('beforeunload', function() {
+        stopAllLiveUpdates();
     });
 });

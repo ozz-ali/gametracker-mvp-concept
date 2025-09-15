@@ -17,6 +17,14 @@
                 <span class="cbs-logo">CBS</span>
                 <span class="sports-text">Sports</span>
             </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active">NFL Scores</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">MLB Scores</a>
+                </li>
+            </ul>
         </div>
     </nav>
 
@@ -24,6 +32,39 @@
     <main class="main-content">
         <header class="page-header">
             <h1>NFL Scores</h1>
+            
+            <!-- Week Filter -->
+            <div class="week-filter">
+                <div class="week-filter-container">
+                    <div class="dropdown-container">
+                        <select id="week-select" class="week-dropdown">
+                            <option value="1">Week 1</option>
+                            <option value="2">Week 2</option>
+                            <option value="3" selected>Week 3</option>
+                            <option value="4">Week 4</option>
+                            <option value="5">Week 5</option>
+                            <option value="6">Week 6</option>
+                            <option value="7">Week 7</option>
+                            <option value="8">Week 8</option>
+                            <option value="9">Week 9</option>
+                            <option value="10">Week 10</option>
+                            <option value="11">Week 11</option>
+                            <option value="12">Week 12</option>
+                            <option value="13">Week 13</option>
+                            <option value="14">Week 14</option>
+                            <option value="15">Week 15</option>
+                            <option value="16">Week 16</option>
+                            <option value="17">Week 17</option>
+                            <option value="18">Week 18</option>
+                        </select>
+                        <div class="dropdown-arrow">
+                            <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                                <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <!-- Content Layout Container -->
