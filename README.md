@@ -52,7 +52,7 @@ Simply open `index.html` in your browser to view the website locally.
 ## 📂 Project Structure
 
 ```
-gametracker-mvp-luke/
+gametracker-mvp-concept/
 ├── index.html          # Main HTML structure
 ├── styles.css          # Complete styling and responsive design  
 ├── script.js           # Game data, interactions, and state management

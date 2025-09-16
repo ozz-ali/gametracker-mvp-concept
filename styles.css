@@ -94,8 +94,57 @@ body {
     padding: 0 20px;
 }
 
+/* Advertisement Banner */
+.advertisement-banner {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin: 40px 0;
+    padding: 0 20px;
+}
+
+.ad-container {
+    width: 65%;
+    max-width: 800px;
+    min-width: 300px;
+    position: relative;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.ad-container:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.ad-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 12px;
+}
+
+.ad-label {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    backdrop-filter: blur(10px);
+}
+
 .page-header {
-    padding: 40px 0;
+    padding: 20px 0 40px 0;
     text-align: left;
 }
 
@@ -185,6 +234,11 @@ body {
     gap: 20px;
 }
 
+/* Week 1 takes full width, so no gap needed */
+.content-layout.week1-no-selection {
+    gap: 0;
+}
+
 /* Games Container */
 .games-container {
     flex: 0 0 50%;
@@ -207,11 +261,25 @@ body {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.games-container.four-column-layout {
+    flex: 0 0 100%; /* Take full width when no selection */
+    grid-template-columns: repeat(4, minmax(220px, 1fr)); /* Fixed minimum width for cards */
+    gap: 10px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* When selection is active, Week 2 layout stays 3-column but compressed to 50% */
 .content-layout.has-selection .games-container.three-column-layout {
     flex: 0 0 50%;
     grid-template-columns: repeat(3, minmax(200px, 1fr));
     gap: 8px;
+}
+
+/* When selection is active, Week 1 layout stays 4-column but compressed to 50% */
+.content-layout.has-selection .games-container.four-column-layout {
+    flex: 0 0 50%;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 6px;
 }
 
 /* Game Card */
@@ -1038,10 +1106,22 @@ body {
         gap: 10px;
     }
     
+    .games-container.four-column-layout {
+        flex: 0 0 100%; /* Take full width on smaller screens too */
+        grid-template-columns: repeat(4, minmax(200px, 1fr));
+        gap: 8px;
+    }
+    
     .content-layout.has-selection .games-container.three-column-layout {
         flex: 0 0 50%;
         grid-template-columns: repeat(3, minmax(180px, 1fr));
         gap: 8px;
+    }
+    
+    .content-layout.has-selection .games-container.four-column-layout {
+        flex: 0 0 50%;
+        grid-template-columns: repeat(4, minmax(130px, 1fr));
+        gap: 6px;
     }
 }
 
@@ -1055,8 +1135,9 @@ body {
         width: 100%;
     }
     
-    /* On tablets, Week 2 becomes standard 2-column layout */
-    .games-container.three-column-layout {
+    /* On tablets, Week 2 and Week 1 become standard 2-column layout */
+    .games-container.three-column-layout,
+    .games-container.four-column-layout {
         flex: none;
         width: 100%;
         grid-template-columns: repeat(2, 1fr);
@@ -1280,13 +1361,29 @@ body {
         padding: 0 16px;
     }
     
+    .advertisement-banner {
+        margin: 30px 0;
+        padding: 0 16px;
+    }
+    
+    .ad-container {
+        width: 85%; /* Slightly wider on mobile */
+        min-width: 280px;
+    }
+    
+    .ad-label {
+        font-size: 9px;
+        padding: 3px 6px;
+    }
+    
     .games-container {
         grid-template-columns: 1fr;
         gap: 16px;
     }
     
-    /* Force 2 columns on mobile for Week 2 to match other weeks */
-    .games-container.three-column-layout {
+    /* Force 2 columns on mobile for Week 2 and Week 1 to match other weeks */
+    .games-container.three-column-layout,
+    .games-container.four-column-layout {
         grid-template-columns: repeat(2, 1fr);
         gap: 16px;
     }
@@ -1402,6 +1499,16 @@ body {
         flex-direction: column;
         gap: 16px;
         padding: 0 16px;
+    }
+    
+    .advertisement-banner {
+        margin: 24px 0;
+        padding: 0 12px;
+    }
+    
+    .ad-container {
+        width: 90%; /* Even wider on very small screens */
+        min-width: 260px;
     }
     
     .page-header h1 {

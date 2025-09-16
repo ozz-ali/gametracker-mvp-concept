@@ -445,14 +445,17 @@ function startLiveUpdates(gameIndex) {
             gamePlayHistories.set(originalIndex, plays);
             
             // Always update the layout to show new plays on cards
-            updateLayout();
+            // Only update layout if not in full page view to prevent modal interference
+            if (!isFullPageView) {
+                updateLayout();
+            }
             
             // Update display if this game is currently selected
             if (selectedGameIndex === gameIndex) {
                 updateDetailsPanel();
                 
                 // On mobile, only update the details section, not the entire modal
-                if (isMobile()) {
+                if (isMobile() && !isFullPageView) {
                     updateMobileModalDetails();
                 }
             }
@@ -643,10 +646,13 @@ function isMobile() {
 
 // Toggle game selection
 function toggleGameDetails(gameIndex) {
+    console.log('toggleGameDetails called:', { gameIndex, currentSelected: selectedGameIndex, isFullPageView });
+    
     if (selectedGameIndex === gameIndex) {
         closeGameDetails();
     } else {
         selectedGameIndex = gameIndex;
+        console.log('toggleGameDetails: set selectedGameIndex to', gameIndex);
         updateLayout();
         
         // Start live updates for the selected game if it's live
@@ -660,17 +666,34 @@ function toggleGameDetails(gameIndex) {
 
 // Close game details
 function closeGameDetails() {
+    const wasFullPageView = isFullPageView;
     selectedGameIndex = -1;
     isFullPageView = false;
+    
+    // Close modals appropriately
     if (isMobile()) {
         closeMobileModal();
     }
     closeFullPageModal();
-    updateLayout();
+    
+    // Ensure main content is visible when returning from full page view
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.style.display = 'block';
+    }
+    
+    // Only update layout if we weren't in full page view to prevent modal re-triggering
+    if (!wasFullPageView) {
+        updateLayout();
+    }
 }
 
 // Expand game details to full page
 function expandGameDetails(gameIndex = null) {
+    console.log('expandGameDetails called, setting isFullPageView to true');
+    // Set full page view flag immediately to prevent any modal interference
+    isFullPageView = true;
+    
     // Use the currently selected game if no specific index provided
     const actualGameIndex = gameIndex !== null ? gameIndex : selectedGameIndex;
     
@@ -679,18 +702,29 @@ function expandGameDetails(gameIndex = null) {
     
     if (!game || actualGameIndex < 0) return;
     
-    isFullPageView = true;
     selectedGameIndex = actualGameIndex;
     
     // Close any existing modals
     closeFullPageModal();
+    
+    // For mobile, ensure modal is properly closed before showing full page
     if (isMobile()) {
+        // Force close mobile modal aggressively
         closeMobileModal();
+        
+        // Additional cleanup - remove any lingering modal elements
+        const modal = document.getElementById('mobileModal');
+        if (modal) {
+            modal.classList.remove('visible');
+            modal.style.display = 'none';
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }
     }
     
     // Hide main content and show full page view
     const mainContent = document.querySelector('.main-content');
-    const navbar = document.querySelector('.navbar');
     
     if (mainContent) {
         mainContent.style.display = 'none';
@@ -736,6 +770,9 @@ function closeFullPageModal() {
     if (mainContent) {
         mainContent.style.display = 'block';
     }
+    
+    // Reset full page view state
+    isFullPageView = false;
 }
 
 // Create full page layout (new page-like view)
@@ -1026,7 +1063,11 @@ function updateDesktopLayout() {
 function updateMobileLayout() {
     populateGames(); // Use standard game population
     updateLayoutClasses();
-    updateMobileModal(); // Handle modal display
+    
+    // Only show mobile modal if not in full page view
+    if (!isFullPageView) {
+        updateMobileModal(); // Handle modal display
+    }
 }
 
 // Update layout classes for responsive design
@@ -1037,17 +1078,23 @@ function updateLayoutClasses() {
     
     if (selectedGameIndex >= 0 && !isMobile()) {
         contentLayout.classList.add('has-selection');
-        contentLayout.classList.remove('week2-no-selection');
+        contentLayout.classList.remove('week1-no-selection', 'week2-no-selection');
         detailsPanel.classList.add('visible');
     } else {
         contentLayout.classList.remove('has-selection');
         if (detailsPanel) detailsPanel.classList.remove('visible');
         
-        // Add special class for Week 2 when no selection
-        if (weekSelect && weekSelect.value === '2') {
-            contentLayout.classList.add('week2-no-selection');
-        } else {
-            contentLayout.classList.remove('week2-no-selection');
+        // Add special class for Week 1 or Week 2 when no selection
+        if (weekSelect) {
+            if (weekSelect.value === '1') {
+                contentLayout.classList.add('week1-no-selection');
+                contentLayout.classList.remove('week2-no-selection');
+            } else if (weekSelect.value === '2') {
+                contentLayout.classList.add('week2-no-selection');
+                contentLayout.classList.remove('week1-no-selection');
+            } else {
+                contentLayout.classList.remove('week1-no-selection', 'week2-no-selection');
+            }
         }
     }
 }
@@ -1232,13 +1279,22 @@ function createMobileModalContent(game, gameIndex) {
 
 // Update mobile modal display
 function updateMobileModal() {
-    if (!isMobile() || selectedGameIndex < 0) {
+    console.log('updateMobileModal called:', { isMobile: isMobile(), selectedGameIndex, isFullPageView });
+    
+    if (!isMobile() || selectedGameIndex < 0 || isFullPageView) {
+        console.log('updateMobileModal: closing modal due to conditions');
         closeMobileModal();
         return;
     }
     
     const sortedGames = getSortedGames();
     const game = sortedGames[selectedGameIndex];
+    
+    // Double-check: Don't create modal if in full page view
+    if (isFullPageView) {
+        closeMobileModal();
+        return;
+    }
     
     // Create modal if it doesn't exist
     let modal = document.getElementById('mobileModal');
@@ -1255,7 +1311,12 @@ function updateMobileModal() {
         // Add click outside to close
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                closeGameDetails();
+                // If we're in full page view, just close the modal without affecting the full page view
+                if (isFullPageView) {
+                    closeMobileModal();
+                } else {
+                    closeGameDetails();
+                }
             }
         });
     }
@@ -1263,6 +1324,12 @@ function updateMobileModal() {
     // Check if modal is already visible - if so, don't regenerate content
     if (modal.classList.contains('visible')) {
         return; // Modal already open, don't regenerate to prevent scroll reset
+    }
+    
+    // Final check before showing modal content
+    if (isFullPageView) {
+        closeMobileModal();
+        return;
     }
     
     // Update modal content only when opening
@@ -1273,24 +1340,41 @@ function updateMobileModal() {
     
     // Position selected game before showing modal to prevent visual glitch
     setTimeout(() => {
-        positionSelectedGameInCenter();
-        // Setup scroll auto-selection after modal is ready
-        setupScrollAutoSelection();
-        // Show modal after positioning
-        modal.classList.add('visible');
+        console.log('setTimeout in updateMobileModal executing:', { isFullPageView, selectedGameIndex });
+        // Check again if we're still not in full page view before showing modal
+        if (!isFullPageView) {
+            console.log('setTimeout: showing modal');
+            positionSelectedGameInCenter();
+            // Setup scroll auto-selection after modal is ready
+            setupScrollAutoSelection();
+            // Show modal after positioning
+            modal.classList.add('visible');
+        } else {
+            console.log('setTimeout: NOT showing modal because isFullPageView is true');
+        }
     }, 10);
 }
 
 // Close mobile modal
 function closeMobileModal() {
+    console.log('closeMobileModal called');
     const modal = document.getElementById('mobileModal');
     if (modal) {
+        console.log('closeMobileModal: modal found, removing');
         modal.classList.remove('visible');
-        setTimeout(() => {
+        // If in full page view, remove immediately without waiting for animation
+        if (isFullPageView) {
+            modal.style.display = 'none';
             if (modal.parentNode) {
                 modal.parentNode.removeChild(modal);
             }
-        }, 400);
+        } else {
+            setTimeout(() => {
+                if (modal.parentNode) {
+                    modal.parentNode.removeChild(modal);
+                }
+            }, 400);
+        }
     }
 }
 
@@ -1305,7 +1389,11 @@ function switchToMobileGame(newIndex) {
         // Just update the active states without regenerating content
         updateMobileModalActiveStates(oldIndex, newIndex);
         updateMobileModalDetails(); // Update only the details section
-        updateLayout(); // Update card selection state
+        
+        // Only update layout if not in full page view
+        if (!isFullPageView) {
+            updateLayout(); // Update card selection state
+        }
         
         // Smoothly center the newly selected game
         smoothCenterSelectedGame();
@@ -1425,6 +1513,9 @@ function setupScrollAutoSelection() {
 
 // Update only the details section content without affecting score cards
 function updateMobileModalDetails() {
+    // Don't update modal details if in full page view
+    if (isFullPageView) return;
+    
     const modalBody = document.querySelector('.mobile-modal-body');
     if (!modalBody) return;
     
@@ -1554,6 +1645,9 @@ function createGameCard(game, gameIndex) {
     const isSelected = selectedGameIndex === gameIndex;
     const liveGame = isGameLive(game);
     
+    // Check if we're in collapsed view (when any game is selected on desktop)
+    const isCollapsed = selectedGameIndex >= 0 && !isMobile();
+    
     const statusHtml = game.status.network 
         ? `<div class="status-main ${liveGame ? 'live' : ''}">${game.status.main}</div><div class="status-network">${game.status.network}</div>`
         : `<div class="status-main ${liveGame ? 'live' : ''}">${game.status.main}</div>`;
@@ -1570,6 +1664,14 @@ function createGameCard(game, gameIndex) {
 
     const hintText = isSelected ? 'Selected' : 'Tap to view details';
 
+    // Use abbreviations when collapsed, full names when not collapsed
+    const awayTeamName = isCollapsed ? game.awayTeam.shortName : game.awayTeam.name;
+    const homeTeamName = isCollapsed ? game.homeTeam.shortName : game.homeTeam.name;
+    
+    // Show records only when not collapsed
+    const awayRecordHtml = (!isCollapsed && game.awayTeam.record) ? `<span class="team-record">${game.awayTeam.record}</span>` : '';
+    const homeRecordHtml = (!isCollapsed && game.homeTeam.record) ? `<span class="team-record">${game.homeTeam.record}</span>` : '';
+
     return `
         <div class="game-card ${isSelected ? 'selected' : ''} ${liveGame ? 'live' : ''}" 
              data-game-index="${gameIndex}" 
@@ -1584,8 +1686,8 @@ function createGameCard(game, gameIndex) {
                     <div class="team-info">
                         <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/32x32/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="team-logo">
                         <div>
-                            <span class="team-name">${game.awayTeam.name}</span>
-                            ${game.awayTeam.record ? `<span class="team-record">${game.awayTeam.record}</span>` : ''}
+                            <span class="team-name">${awayTeamName}</span>
+                            ${awayRecordHtml}
                         </div>
                     </div>
                     <div class="team-score">${game.awayTeam.score}</div>
@@ -1595,8 +1697,8 @@ function createGameCard(game, gameIndex) {
                     <div class="team-info">
                         <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/32x32/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="team-logo">
                         <div>
-                            <span class="team-name">${game.homeTeam.name}</span>
-                            ${game.homeTeam.record ? `<span class="team-record">${game.homeTeam.record}</span>` : ''}
+                            <span class="team-name">${homeTeamName}</span>
+                            ${homeRecordHtml}
                         </div>
                     </div>
                     <div class="team-score">${game.homeTeam.score}</div>
@@ -1638,22 +1740,31 @@ function updateWeekLayout() {
     if (weekSelect && gamesContainer) {
         const selectedWeek = weekSelect.value;
         
-        // Apply 3-column layout for Week 2, 2-column for all others
-        if (selectedWeek === '2') {
+        // Remove all layout classes first
+        gamesContainer.classList.remove('two-column-layout', 'three-column-layout', 'four-column-layout');
+        
+        // Apply appropriate layout for each week
+        if (selectedWeek === '1') {
+            gamesContainer.classList.add('four-column-layout');
+        } else if (selectedWeek === '2') {
             gamesContainer.classList.add('three-column-layout');
-            gamesContainer.classList.remove('two-column-layout');
         } else {
             gamesContainer.classList.add('two-column-layout');
-            gamesContainer.classList.remove('three-column-layout');
         }
         
-        // Update layout classes to handle Week 2 specific styling
+        // Update layout classes to handle week-specific styling
         updateLayoutClasses();
     }
 }
 
 // Initialize the page when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...', { selectedGameIndex, isFullPageView });
+    
+    // Ensure clean state on page load
+    selectedGameIndex = -1;
+    isFullPageView = false;
+    
     updateLayout();
     initializeLiveUpdates();
     
@@ -1671,13 +1782,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close details panel when pressing Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && (selectedGameIndex >= 0 || isFullPageView)) {
-            closeGameDetails();
+            // If we're in full page view and mobile modal is open, just close the modal
+            const mobileModal = document.getElementById('mobileModal');
+            if (isFullPageView && isMobile() && mobileModal && mobileModal.classList.contains('visible')) {
+                closeMobileModal();
+            } else {
+                closeGameDetails();
+            }
         }
     });
     
     // Handle window resize to switch between mobile/desktop views
     window.addEventListener('resize', function() {
-        updateLayout();
+        // Only update layout if not in full page view to prevent modal interference
+        if (!isFullPageView) {
+            updateLayout();
+        }
     });
     
     // Clean up intervals when page unloads
