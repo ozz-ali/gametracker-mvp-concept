@@ -28,6 +28,8 @@ const teamLogos = {
 let selectedGameIndex = -1;
 let liveUpdateIntervals = new Map();
 let gamePlayHistories = new Map();
+let scrollTimeout = null;
+let isFullPageView = false;
 
 // NFL Game Data with additional games
 const nflGames = [
@@ -449,18 +451,12 @@ function startLiveUpdates(gameIndex) {
             if (selectedGameIndex === gameIndex) {
                 updateDetailsPanel();
                 
-                // Animate in new play on mobile too
+                // On mobile, only update the details section, not the entire modal
                 if (isMobile()) {
-                    updateMobileLayout();
+                    updateMobileModalDetails();
                 }
             }
             
-            // Mark play as not new after animation
-            setTimeout(() => {
-                newPlay.isNew = false;
-                // Refresh the display to remove the animation styling
-                updateLayout();
-            }, 1000);
             
             // Schedule the next update
             if (liveUpdateIntervals.has(originalIndex)) {
@@ -526,6 +522,7 @@ function createDetailsContent(game, gameIndex) {
     
     return `
         <div class="details-header">
+            <button class="close-btn" onclick="closeGameDetails()" aria-label="Close details">&times;</button>
             <div class="details-title">
                 <div class="team-logos-header">
                     <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/32x32/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="header-team-logo">
@@ -539,7 +536,12 @@ function createDetailsContent(game, gameIndex) {
                 <h3>${game.awayTeam.name} @ ${game.homeTeam.name}</h3>
                 <div class="header-status">${game.status.main}</div>
             </div>
-            <button class="close-btn" onclick="closeGameDetails()" aria-label="Close details">&times;</button>
+            <button class="expand-btn" onclick="expandGameDetails()" aria-label="Expand to full page">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 7h10v10"></path>
+                    <path d="M7 17L17 7"></path>
+                </svg>
+            </button>
         </div>
         
         <div class="details-body">
@@ -586,7 +588,7 @@ function createDetailsContent(game, gameIndex) {
                 <h4>Recent Plays</h4>
                 <div class="plays-container">
                     ${details.plays.map(play => `
-                        <div class="play-item ${play.isNew ? 'new-play' : ''}">
+                        <div class="play-item">
                             <div class="play-time">${play.quarter} ${play.time}</div>
                             <div class="play-team">${play.team}</div>
                             <div class="play-description">${play.description}</div>
@@ -659,60 +661,85 @@ function toggleGameDetails(gameIndex) {
 // Close game details
 function closeGameDetails() {
     selectedGameIndex = -1;
+    isFullPageView = false;
+    if (isMobile()) {
+        closeMobileModal();
+    }
+    closeFullPageModal();
     updateLayout();
 }
 
-// Update the entire layout
-function updateLayout() {
+// Expand game details to full page
+function expandGameDetails(gameIndex = null) {
+    // Use the currently selected game if no specific index provided
+    const actualGameIndex = gameIndex !== null ? gameIndex : selectedGameIndex;
+    
+    const sortedGames = getSortedGames();
+    const game = sortedGames[actualGameIndex];
+    
+    if (!game || actualGameIndex < 0) return;
+    
+    isFullPageView = true;
+    selectedGameIndex = actualGameIndex;
+    
+    // Close any existing modals
+    closeFullPageModal();
     if (isMobile()) {
-        updateMobileLayout();
-    } else {
-        updateDesktopLayout();
+        closeMobileModal();
     }
-}
-
-// Update desktop layout
-function updateDesktopLayout() {
-    populateGames();
-    updateDetailsPanel();
-    updateLayoutClasses();
-}
-
-// Update mobile layout with inline expansion
-function updateMobileLayout() {
-    populateGamesWithMobileDetails();
-    updateLayoutClasses();
-}
-
-// Update layout classes for responsive design
-function updateLayoutClasses() {
-    const contentLayout = document.getElementById('contentLayout');
-    const detailsPanel = document.getElementById('detailsPanel');
     
-    if (selectedGameIndex >= 0 && !isMobile()) {
-        contentLayout.classList.add('has-selection');
-        detailsPanel.classList.add('visible');
-    } else {
-        contentLayout.classList.remove('has-selection');
-        if (detailsPanel) detailsPanel.classList.remove('visible');
-    }
-}
-
-// Update details panel content (desktop only)
-function updateDetailsPanel() {
-    const detailsPanel = document.getElementById('detailsPanel');
-    if (!detailsPanel || isMobile()) return;
+    // Hide main content and show full page view
+    const mainContent = document.querySelector('.main-content');
+    const navbar = document.querySelector('.navbar');
     
-    if (selectedGameIndex >= 0) {
-        const game = nflGames[selectedGameIndex];
-        detailsPanel.innerHTML = createDetailsContent(game, selectedGameIndex);
-    } else {
-        detailsPanel.innerHTML = '';
+    if (mainContent) {
+        mainContent.style.display = 'none';
+    }
+    
+    // Create full page view container
+    let fullPageContainer = document.getElementById('fullPageContainer');
+    if (!fullPageContainer) {
+        fullPageContainer = document.createElement('div');
+        fullPageContainer.id = 'fullPageContainer';
+        fullPageContainer.className = 'fullpage-container';
+        document.body.appendChild(fullPageContainer);
+    }
+    
+    // Populate full page content
+    fullPageContainer.innerHTML = createFullPageLayout(game, actualGameIndex);
+    fullPageContainer.style.display = 'block';
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+}
+
+// Close full page modal
+function closeFullPageModal() {
+    const modal = document.getElementById('fullPageModal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 400);
+    }
+    
+    // Hide full page container and show main content
+    const fullPageContainer = document.getElementById('fullPageContainer');
+    const mainContent = document.querySelector('.main-content');
+    
+    if (fullPageContainer) {
+        fullPageContainer.style.display = 'none';
+    }
+    
+    if (mainContent) {
+        mainContent.style.display = 'block';
     }
 }
 
-// Create mobile details content
-function createMobileDetailsContent(game, gameIndex) {
+// Create full page layout (new page-like view)
+function createFullPageLayout(game, gameIndex) {
     const sortedGames = getSortedGames();
     const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
     const details = getGameDetails(game, originalIndex);
@@ -740,25 +767,32 @@ function createMobileDetailsContent(game, gameIndex) {
     ` : '';
     
     return `
-        <div class="mobile-details" id="mobileDetails-${gameIndex}">
-            <div class="details-header">
-                <div class="details-title">
+        <div class="fullpage-content">
+            <div class="fullpage-header">
+                <button class="back-btn" onclick="closeGameDetails()" aria-label="Back to games">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5"></path>
+                        <path d="M12 19l-7-7 7-7"></path>
+                    </svg>
+                    Back to Games
+                </button>
+                
+                <div class="fullpage-game-header">
                     <div class="team-logos-header">
-                        <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/32x32/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="header-team-logo">
-                        <div class="header-scores">
-                            <span class="header-score away">${game.awayTeam.score}</span>
-                            <span class="vs">-</span>
-                            <span class="header-score home">${game.homeTeam.score}</span>
+                        <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/48x48/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="fullpage-team-logo">
+                        <div class="fullpage-scores">
+                            <span class="fullpage-score away">${game.awayTeam.score}</span>
+                            <span class="fullpage-vs">-</span>
+                            <span class="fullpage-score home">${game.homeTeam.score}</span>
                         </div>
-                        <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/32x32/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="header-team-logo">
+                        <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/48x48/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="fullpage-team-logo">
                     </div>
-                    <h3>${game.awayTeam.name} @ ${game.homeTeam.name}</h3>
-                    <div class="header-status">${game.status.main}</div>
+                    <h1 class="fullpage-title">${game.awayTeam.name} @ ${game.homeTeam.name}</h1>
+                    <div class="fullpage-status">${game.status.main}</div>
                 </div>
-                <button class="close-btn" onclick="closeGameDetails()" aria-label="Close details">&times;</button>
             </div>
             
-            <div class="mobile-details-body">
+            <div class="fullpage-body">
                 ${highlightsSection}
                 
                 <div class="details-section">
@@ -771,7 +805,7 @@ function createMobileDetailsContent(game, gameIndex) {
                             <tr>
                                 <td>
                                     <div class="team-with-logo">
-                                        <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="table-team-logo mobile">
+                                        <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="table-team-logo">
                                         <strong>${game.awayTeam.name}</strong>
                                     </div>
                                 </td>
@@ -784,7 +818,7 @@ function createMobileDetailsContent(game, gameIndex) {
                             <tr>
                                 <td>
                                     <div class="team-with-logo">
-                                        <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="table-team-logo mobile">
+                                        <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="table-team-logo">
                                         <strong>${game.homeTeam.name}</strong>
                                     </div>
                                 </td>
@@ -802,7 +836,7 @@ function createMobileDetailsContent(game, gameIndex) {
                     <h4>Recent Plays</h4>
                     <div class="plays-container">
                         ${details.plays.map(play => `
-                            <div class="play-item ${play.isNew ? 'new-play' : ''}">
+                            <div class="play-item">
                                 <div class="play-time">${play.quarter} ${play.time}</div>
                                 <div class="play-team">${play.team}</div>
                                 <div class="play-description">${play.description}</div>
@@ -851,41 +885,669 @@ function createMobileDetailsContent(game, gameIndex) {
     `;
 }
 
-// Populate games with mobile inline details
-function populateGamesWithMobileDetails() {
-    const gamesContainer = document.getElementById('gamesContainer');
-    if (!gamesContainer) return;
+// Create full page content (enhanced version of details content) - keeping for compatibility
+function createFullPageContent(game, gameIndex) {
+    const sortedGames = getSortedGames();
+    const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
+    const details = getGameDetails(game, originalIndex);
+    const isGameFinished = game.status.main.includes('FINAL');
     
-    let gameCardsHtml = '';
+    const highlightsSection = isGameFinished ? `
+        <div class="details-section">
+            <h4>Game Highlights</h4>
+            <div class="highlights-container">
+                <div class="video-placeholder">
+                    <div class="video-thumbnail">
+                        <div class="video-bg">
+                            <div class="video-title">Game Highlights</div>
+                            <div class="video-duration">4:32</div>
+                        </div>
+                        <div class="play-button">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <h5>${game.awayTeam.name} @ ${game.homeTeam.name} Highlights</h5>
+                        <p>Watch the best moments from this exciting matchup</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ` : '';
+    
+    return `
+        <div style="max-width: 1200px; margin: 0 auto;">
+            ${highlightsSection}
+            
+            <div class="details-section">
+                <h4>Box Score</h4>
+                <table class="score-table">
+                    <thead>
+                        <tr><th>Team</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th><th>Total</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="team-with-logo">
+                                    <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="table-team-logo">
+                                    <strong>${game.awayTeam.name}</strong>
+                                </div>
+                            </td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q1}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q2}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q3}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q4}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].total}</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="team-with-logo">
+                                    <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="table-team-logo">
+                                    <strong>${game.homeTeam.name}</strong>
+                                </div>
+                            </td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q1}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q2}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q3}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q4}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].total}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="details-section">
+                <h4>Recent Plays</h4>
+                <div class="plays-container">
+                    ${details.plays.map(play => `
+                        <div class="play-item">
+                            <div class="play-time">${play.quarter} ${play.time}</div>
+                            <div class="play-team">${play.team}</div>
+                            <div class="play-description">${play.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="details-section">
+                <h4>Team Statistics</h4>
+                <div class="stats-grid">
+                    <div class="stats-header">
+                        <span class="stat-category">Category</span>
+                        <span class="stat-team">${game.awayTeam.shortName}</span>
+                        <span class="stat-team">${game.homeTeam.shortName}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Total Yards</span>
+                        <span class="stat-value">342</span>
+                        <span class="stat-value">289</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Passing Yards</span>
+                        <span class="stat-value">245</span>
+                        <span class="stat-value">198</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Rushing Yards</span>
+                        <span class="stat-value">97</span>
+                        <span class="stat-value">91</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Turnovers</span>
+                        <span class="stat-value">1</span>
+                        <span class="stat-value">2</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Time of Possession</span>
+                        <span class="stat-value">32:15</span>
+                        <span class="stat-value">27:45</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Update the entire layout
+function updateLayout() {
+    if (isMobile()) {
+        updateMobileLayout();
+    } else {
+        updateDesktopLayout();
+    }
+}
+
+// Update desktop layout
+function updateDesktopLayout() {
+    populateGames();
+    updateDetailsPanel();
+    updateLayoutClasses();
+}
+
+// Update mobile layout with modal system
+function updateMobileLayout() {
+    populateGames(); // Use standard game population
+    updateLayoutClasses();
+    updateMobileModal(); // Handle modal display
+}
+
+// Update layout classes for responsive design
+function updateLayoutClasses() {
+    const contentLayout = document.getElementById('contentLayout');
+    const detailsPanel = document.getElementById('detailsPanel');
+    const weekSelect = document.getElementById('week-select');
+    
+    if (selectedGameIndex >= 0 && !isMobile()) {
+        contentLayout.classList.add('has-selection');
+        contentLayout.classList.remove('week2-no-selection');
+        detailsPanel.classList.add('visible');
+    } else {
+        contentLayout.classList.remove('has-selection');
+        if (detailsPanel) detailsPanel.classList.remove('visible');
+        
+        // Add special class for Week 2 when no selection
+        if (weekSelect && weekSelect.value === '2') {
+            contentLayout.classList.add('week2-no-selection');
+        } else {
+            contentLayout.classList.remove('week2-no-selection');
+        }
+    }
+}
+
+// Update details panel content (desktop only)
+function updateDetailsPanel() {
+    const detailsPanel = document.getElementById('detailsPanel');
+    if (!detailsPanel || isMobile()) return;
+    
+    if (selectedGameIndex >= 0) {
+        const sortedGames = getSortedGames();
+        const game = sortedGames[selectedGameIndex]; // Use sorted games array, not original
+        detailsPanel.innerHTML = createDetailsContent(game, selectedGameIndex);
+    } else {
+        detailsPanel.innerHTML = '';
+    }
+}
+
+// Create mobile score card for horizontal scroll
+function createMobileScoreCard(game, index, isActive) {
+    const liveGame = isGameLive(game);
+    const statusClass = liveGame ? 'live' : '';
+    
+    return `
+        <div class="mobile-game-score-card ${isActive ? 'active' : ''}" onclick="switchToMobileGame(${index})">
+            <div class="mobile-score-header">
+                <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/40x40/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="mobile-team-logo">
+                <div class="mobile-score-display">
+                    <span>${game.awayTeam.score}</span>
+                    <span class="mobile-vs">-</span>
+                    <span>${game.homeTeam.score}</span>
+                </div>
+                <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/40x40/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="mobile-team-logo">
+            </div>
+            <div class="mobile-game-title">${game.awayTeam.name} @ ${game.homeTeam.name}</div>
+            <div class="mobile-game-status ${statusClass}">${game.status.main}</div>
+        </div>
+    `;
+}
+
+// Create mobile modal content
+function createMobileModalContent(game, gameIndex) {
+    const sortedGames = getSortedGames();
+    const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
+    const details = getGameDetails(game, originalIndex);
+    const isGameFinished = game.status.main.includes('FINAL');
+    const isLive = isGameLive(game);
+    
+    const highlightsSection = isGameFinished ? `
+        <div class="details-section">
+            <h4>Game Highlights</h4>
+            <div class="highlights-container">
+                <div class="video-placeholder">
+                    <div class="video-thumbnail">
+                        <div class="video-bg">
+                            <div class="video-title">Game Highlights</div>
+                            <div class="video-duration">4:32</div>
+                        </div>
+                        <div class="play-button">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <h5>${game.awayTeam.name} @ ${game.homeTeam.name} Highlights</h5>
+                        <p>Watch the best moments from this exciting matchup</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ` : '';
+    
+    // Create horizontal scrollable score cards
+    const scoreCards = sortedGames.map((g, i) => createMobileScoreCard(g, i, i === gameIndex)).join('');
+    
+    return `
+        <div class="mobile-modal-header">
+            <div class="mobile-modal-handle"></div>
+            <div class="mobile-header-actions">
+                <button class="expand-btn mobile-expand" onclick="expandGameDetails()" aria-label="Expand to full page">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M7 7h10v10"></path>
+                        <path d="M7 17L17 7"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="mobile-score-cards-container">
+                <div class="mobile-score-cards-scroll" id="mobileScoreCardsScroll">
+                    ${scoreCards}
+                </div>
+            </div>
+        </div>
+        
+        <div class="mobile-modal-body">
+            ${highlightsSection}
+            
+            <div class="details-section">
+                <h4>Box Score</h4>
+                <table class="score-table">
+                    <thead>
+                        <tr><th>Team</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th><th>Total</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="team-with-logo">
+                                    <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="table-team-logo mobile">
+                                    <strong>${game.awayTeam.name}</strong>
+                                </div>
+                            </td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q1}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q2}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q3}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].q4}</td>
+                            <td>${details.boxScore[game.awayTeam.shortName].total}</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="team-with-logo">
+                                    <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="table-team-logo mobile">
+                                    <strong>${game.homeTeam.name}</strong>
+                                </div>
+                            </td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q1}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q2}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q3}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].q4}</td>
+                            <td>${details.boxScore[game.homeTeam.shortName].total}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="details-section">
+                <h4>Recent Plays</h4>
+                <div class="plays-container">
+                    ${details.plays.map(play => `
+                        <div class="play-item">
+                            <div class="play-time">${play.quarter} ${play.time}</div>
+                            <div class="play-team">${play.team}</div>
+                            <div class="play-description">${play.description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="details-section">
+                <h4>Team Statistics</h4>
+                <div class="stats-grid">
+                    <div class="stats-header">
+                        <span class="stat-category">Category</span>
+                        <span class="stat-team">${game.awayTeam.shortName}</span>
+                        <span class="stat-team">${game.homeTeam.shortName}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Total Yards</span>
+                        <span class="stat-value">342</span>
+                        <span class="stat-value">289</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Passing Yards</span>
+                        <span class="stat-value">245</span>
+                        <span class="stat-value">198</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Rushing Yards</span>
+                        <span class="stat-value">97</span>
+                        <span class="stat-value">91</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Turnovers</span>
+                        <span class="stat-value">1</span>
+                        <span class="stat-value">2</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-category">Time of Possession</span>
+                        <span class="stat-value">32:15</span>
+                        <span class="stat-value">27:45</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Update mobile modal display
+function updateMobileModal() {
+    if (!isMobile() || selectedGameIndex < 0) {
+        closeMobileModal();
+        return;
+    }
+    
+    const sortedGames = getSortedGames();
+    const game = sortedGames[selectedGameIndex];
+    
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('mobileModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'mobileModal';
+        modal.className = 'mobile-modal';
+        modal.innerHTML = `
+            <div class="mobile-modal-content" id="mobileModalContent">
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeGameDetails();
+            }
+        });
+    }
+    
+    // Check if modal is already visible - if so, don't regenerate content
+    if (modal.classList.contains('visible')) {
+        return; // Modal already open, don't regenerate to prevent scroll reset
+    }
+    
+    // Update modal content only when opening
+    const modalContent = document.getElementById('mobileModalContent');
+    if (modalContent) {
+        modalContent.innerHTML = createMobileModalContent(game, selectedGameIndex);
+    }
+    
+    // Position selected game before showing modal to prevent visual glitch
+    setTimeout(() => {
+        positionSelectedGameInCenter();
+        // Setup scroll auto-selection after modal is ready
+        setupScrollAutoSelection();
+        // Show modal after positioning
+        modal.classList.add('visible');
+    }, 10);
+}
+
+// Close mobile modal
+function closeMobileModal() {
+    const modal = document.getElementById('mobileModal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 400);
+    }
+}
+
+// Switch to a different game in mobile modal
+function switchToMobileGame(newIndex) {
     const sortedGames = getSortedGames();
     
-    sortedGames.forEach((game, index) => {
-        // Add the game card
-        gameCardsHtml += createGameCard(game, index);
+    if (newIndex >= 0 && newIndex < sortedGames.length && newIndex !== selectedGameIndex) {
+        const oldIndex = selectedGameIndex;
+        selectedGameIndex = newIndex;
         
-        // Add mobile details if this game is selected
-        if (selectedGameIndex === index) {
-            gameCardsHtml += createMobileDetailsContent(game, index);
+        // Just update the active states without regenerating content
+        updateMobileModalActiveStates(oldIndex, newIndex);
+        updateMobileModalDetails(); // Update only the details section
+        updateLayout(); // Update card selection state
+        
+        // Smoothly center the newly selected game
+        smoothCenterSelectedGame();
+        
+        // Start live updates if it's a live game
+        const game = sortedGames[selectedGameIndex];
+        if (isGameLive(game)) {
+            startLiveUpdates(selectedGameIndex);
+        }
+    }
+}
+
+// Update only the active states of existing cards to avoid content regeneration
+function updateMobileModalActiveStates(oldIndex, newIndex) {
+    const scoreCardsContainer = document.getElementById('mobileScoreCardsScroll');
+    if (!scoreCardsContainer) return;
+    
+    // Remove active class from old card
+    if (oldIndex >= 0) {
+        const oldCard = scoreCardsContainer.children[oldIndex];
+        if (oldCard) {
+            oldCard.classList.remove('active');
+        }
+    }
+    
+    // Add active class to new card
+    const newCard = scoreCardsContainer.children[newIndex];
+    if (newCard) {
+        newCard.classList.add('active');
+    }
+}
+
+// Position the selected game in center instantly (no animation)
+function positionSelectedGameInCenter() {
+    const scoreCardsContainer = document.getElementById('mobileScoreCardsScroll');
+    const activeCard = scoreCardsContainer?.querySelector('.mobile-game-score-card.active');
+    
+    if (scoreCardsContainer && activeCard) {
+        const containerWidth = scoreCardsContainer.offsetWidth;
+        const cardWidth = activeCard.offsetWidth;
+        const scrollLeft = activeCard.offsetLeft - (containerWidth / 2) + (cardWidth / 2);
+        
+        // Set position instantly without animation
+        scoreCardsContainer.scrollLeft = scrollLeft;
+    }
+}
+
+// Smoothly center the selected game with animation
+function smoothCenterSelectedGame() {
+    const scoreCardsContainer = document.getElementById('mobileScoreCardsScroll');
+    const activeCard = scoreCardsContainer?.querySelector('.mobile-game-score-card.active');
+    
+    if (scoreCardsContainer && activeCard) {
+        const containerWidth = scoreCardsContainer.offsetWidth;
+        const cardWidth = activeCard.offsetWidth;
+        const targetScrollLeft = activeCard.offsetLeft - (containerWidth / 2) + (cardWidth / 2);
+        
+        // Smooth scroll to center the selected game
+        scoreCardsContainer.scrollTo({
+            left: targetScrollLeft,
+            behavior: 'smooth'
+        });
+    }
+}
+
+// Find which game card is closest to center
+function findCenterCard() {
+    const scoreCardsContainer = document.getElementById('mobileScoreCardsScroll');
+    if (!scoreCardsContainer) return -1;
+    
+    const containerRect = scoreCardsContainer.getBoundingClientRect();
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    const cards = scoreCardsContainer.querySelectorAll('.mobile-game-score-card');
+    
+    let closestIndex = -1;
+    let minDistance = Infinity;
+    
+    cards.forEach((card, index) => {
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const distance = Math.abs(cardCenter - containerCenter);
+        
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestIndex = index;
         }
     });
     
-    gamesContainer.innerHTML = gameCardsHtml;
+    return closestIndex;
+}
+
+// Handle scroll events with debouncing
+function handleScrollEnd() {
+    const centerCardIndex = findCenterCard();
     
-    // Animate the mobile details in
-    if (selectedGameIndex >= 0) {
-        setTimeout(() => {
-            const mobileDetails = document.getElementById(`mobileDetails-${selectedGameIndex}`);
-            if (mobileDetails) {
-                mobileDetails.classList.add('visible');
-                // Scroll the selected card into view
-                const selectedCard = document.querySelector(`[data-game-index="${selectedGameIndex}"]`);
-                if (selectedCard) {
-                    selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            }
-        }, 50);
+    if (centerCardIndex >= 0 && centerCardIndex !== selectedGameIndex) {
+        // Auto-select the centered card
+        switchToMobileGame(centerCardIndex);
     }
 }
+
+// Setup scroll listener for auto-selection
+function setupScrollAutoSelection() {
+    const scoreCardsContainer = document.getElementById('mobileScoreCardsScroll');
+    if (!scoreCardsContainer) return;
+    
+    scoreCardsContainer.addEventListener('scroll', () => {
+        // Clear existing timeout
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+        }
+        
+        // Set new timeout to detect when scrolling stops
+        scrollTimeout = setTimeout(handleScrollEnd, 150);
+    }, { passive: true });
+}
+
+// Update only the details section content without affecting score cards
+function updateMobileModalDetails() {
+    const modalBody = document.querySelector('.mobile-modal-body');
+    if (!modalBody) return;
+    
+    if (selectedGameIndex < 0) return; // Add safety check
+    
+    const sortedGames = getSortedGames();
+    const game = sortedGames[selectedGameIndex];
+    const originalIndex = nflGames.findIndex(g => g === sortedGames[selectedGameIndex]);
+    const details = getGameDetails(game, originalIndex);
+    const isGameFinished = game.status.main.includes('FINAL');
+    
+    const highlightsSection = isGameFinished ? `
+        <div class="details-section">
+            <h4>Game Highlights</h4>
+            <div class="highlights-container">
+                <div class="video-placeholder">
+                    <div class="video-thumbnail">
+                        <div class="video-bg">
+                            <div class="video-title">Game Highlights</div>
+                            <div class="video-duration">4:32</div>
+                        </div>
+                        <div class="play-button">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <h5>${game.awayTeam.name} @ ${game.homeTeam.name} Highlights</h5>
+                        <p>Watch the best moments from this exciting matchup</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    ` : '';
+    
+    modalBody.innerHTML = `
+        ${highlightsSection}
+        
+        <div class="details-section">
+            <h4>Box Score</h4>
+            <table class="score-table">
+                <thead>
+                    <tr><th>Team</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="team-with-logo">
+                                <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="table-team-logo mobile">
+                                <strong>${game.awayTeam.name}</strong>
+                            </div>
+                        </td>
+                        <td>${details.boxScore[game.awayTeam.shortName].q1}</td>
+                        <td>${details.boxScore[game.awayTeam.shortName].q2}</td>
+                        <td>${details.boxScore[game.awayTeam.shortName].q3}</td>
+                        <td>${details.boxScore[game.awayTeam.shortName].q4}</td>
+                        <td>${details.boxScore[game.awayTeam.shortName].total}</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="team-with-logo">
+                                <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + game.homeTeam.shortName}" alt="${game.homeTeam.name} logo" class="table-team-logo mobile">
+                                <strong>${game.homeTeam.name}</strong>
+                            </div>
+                        </td>
+                        <td>${details.boxScore[game.homeTeam.shortName].q1}</td>
+                        <td>${details.boxScore[game.homeTeam.shortName].q2}</td>
+                        <td>${details.boxScore[game.homeTeam.shortName].q3}</td>
+                        <td>${details.boxScore[game.homeTeam.shortName].q4}</td>
+                        <td>${details.boxScore[game.homeTeam.shortName].total}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="details-section">
+            <h4>Recent Plays</h4>
+            <div class="plays-container">
+                ${details.plays.map(play => `
+                    <div class="play-item">
+                        <div class="play-time">${play.quarter} ${play.time}</div>
+                        <div class="play-team">${play.team}</div>
+                        <div class="play-description">${play.description}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        
+        <div class="details-section">
+            <h4>Team Statistics</h4>
+            <div class="stats-grid">
+                <div class="stats-header">
+                    <span class="stat-category">Category</span>
+                    <span class="stat-team">${game.awayTeam.shortName}</span>
+                    <span class="stat-team">${game.homeTeam.shortName}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-category">Total Yards</span>
+                    <span class="stat-value">342</span>
+                    <span class="stat-value">289</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-category">Passing Yards</span>
+                    <span class="stat-value">245</span>
+                    <span class="stat-value">198</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-category">Rushing Yards</span>
+                    <span class="stat-value">97</span>
+                    <span class="stat-value">91</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-category">Turnovers</span>
+                    <span class="stat-value">1</span>
+                    <span class="stat-value">2</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-category">Time of Possession</span>
+                    <span class="stat-value">32:15</span>
+                    <span class="stat-value">27:45</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 
 // Function to create a game card HTML
 function createGameCard(game, gameIndex) {
@@ -896,32 +1558,8 @@ function createGameCard(game, gameIndex) {
         ? `<div class="status-main ${liveGame ? 'live' : ''}">${game.status.main}</div><div class="status-network">${game.status.network}</div>`
         : `<div class="status-main ${liveGame ? 'live' : ''}">${game.status.main}</div>`;
     
-    // Get latest play for live games
-    let latestPlayHtml = '';
-    if (liveGame) {
-        const sortedGames = getSortedGames();
-        const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
-        const plays = gamePlayHistories.get(originalIndex);
-        if (plays && plays.length > 0) {
-            const latestPlay = plays[0];
-            // Find the team logo for the play
-            const playingTeam = latestPlay.team === game.homeTeam.shortName ? game.homeTeam : game.awayTeam;
-            const teamLogoUrl = teamLogos[playingTeam.logo] || 'https://via.placeholder.com/20x20/666/fff?text=' + latestPlay.team;
-            
-            latestPlayHtml = `
-                <div class="latest-play ${latestPlay.isNew ? 'new-play-card' : ''}">
-                    <div class="latest-play-wrapper">
-                        <div class="latest-play-content">
-                            <img src="${teamLogoUrl}" alt="${latestPlay.team} logo" class="play-team-logo">
-                            <span class="play-desc-mini">${latestPlay.description}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-    }
     
-    const detailsHtml = game.details 
+    const detailsHtml = game.details && !game.status.main.includes('FINAL')
         ? `<div class="game-details">
                <div class="detail-item">
                    <span class="detail-label">${game.details.spread.split(' ')[0]} ${game.details.spread.split(' ')[1]}</span>
@@ -930,7 +1568,7 @@ function createGameCard(game, gameIndex) {
            </div>`
         : '';
 
-    const hintText = isSelected ? 'Selected' : 'Click to view details';
+    const hintText = isSelected ? 'Selected' : 'Tap to view details';
 
     return `
         <div class="game-card ${isSelected ? 'selected' : ''} ${liveGame ? 'live' : ''}" 
@@ -965,8 +1603,6 @@ function createGameCard(game, gameIndex) {
                 </div>
             </div>
             
-            ${latestPlayHtml}
-            
             ${detailsHtml}
             
             <div class="select-hint">${hintText}</div>
@@ -994,14 +1630,47 @@ function initializeLiveUpdates() {
     });
 }
 
+// Update layout based on selected week
+function updateWeekLayout() {
+    const weekSelect = document.getElementById('week-select');
+    const gamesContainer = document.getElementById('gamesContainer');
+    
+    if (weekSelect && gamesContainer) {
+        const selectedWeek = weekSelect.value;
+        
+        // Apply 3-column layout for Week 2, 2-column for all others
+        if (selectedWeek === '2') {
+            gamesContainer.classList.add('three-column-layout');
+            gamesContainer.classList.remove('two-column-layout');
+        } else {
+            gamesContainer.classList.add('two-column-layout');
+            gamesContainer.classList.remove('three-column-layout');
+        }
+        
+        // Update layout classes to handle Week 2 specific styling
+        updateLayoutClasses();
+    }
+}
+
 // Initialize the page when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     updateLayout();
     initializeLiveUpdates();
     
+    // Set initial layout based on current week selection
+    updateWeekLayout();
+    
+    // Listen for week dropdown changes
+    const weekSelect = document.getElementById('week-select');
+    if (weekSelect) {
+        weekSelect.addEventListener('change', function() {
+            updateWeekLayout();
+        });
+    }
+    
     // Close details panel when pressing Escape key
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && selectedGameIndex >= 0) {
+        if (e.key === 'Escape' && (selectedGameIndex >= 0 || isFullPageView)) {
             closeGameDetails();
         }
     });

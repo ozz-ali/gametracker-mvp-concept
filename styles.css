@@ -180,14 +180,38 @@ body {
     gap: 16px;
 }
 
+/* Adjust gap for Week 2 layout when no selection to accommodate larger games container */
+.content-layout.week2-no-selection {
+    gap: 20px;
+}
+
 /* Games Container */
 .games-container {
-    flex: 0 0 48%;
+    flex: 0 0 50%;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     padding-bottom: 40px;
     transition: all 0.3s ease;
+}
+
+/* Week-based layout variations */
+.games-container.two-column-layout {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.games-container.three-column-layout {
+    flex: 0 0 75%; /* Take more space when no selection */
+    grid-template-columns: repeat(3, minmax(280px, 1fr)); /* Fixed minimum width for cards */
+    gap: 12px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* When selection is active, Week 2 layout stays 3-column but compressed to 50% */
+.content-layout.has-selection .games-container.three-column-layout {
+    flex: 0 0 50%;
+    grid-template-columns: repeat(3, minmax(200px, 1fr));
+    gap: 8px;
 }
 
 /* Game Card */
@@ -218,32 +242,44 @@ body {
 }
 
 .game-card:hover:not(.selected) {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.12);
-    border-color: #cbd5e1;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+    border-color: #d1d5db;
 }
 
 .game-card:hover:not(.selected)::before {
-    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .game-card.selected {
-    border-color: #3b82f6;
-    box-shadow: 0 16px 48px rgba(59, 130, 246, 0.15);
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    transform: translateY(-2px);
+    border: 2px solid #007aff;
+    box-shadow: 
+        0 0 0 4px rgba(0, 122, 255, 0.15),
+        0 20px 40px rgba(0, 122, 255, 0.2),
+        0 8px 16px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    transform: translateY(-4px) scale(1.02);
+    position: relative;
+    z-index: 10;
 }
 
+
 .game-card.live {
-    border-left: 4px solid #10b981;
     background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
 }
 
 .game-card.live.selected {
-    border-left: 4px solid #10b981;
-    border-color: #3b82f6;
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 2px solid #007aff;
+    box-shadow: 
+        0 0 0 4px rgba(0, 122, 255, 0.15),
+        0 20px 40px rgba(0, 122, 255, 0.2),
+        0 8px 16px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    transform: translateY(-4px) scale(1.02);
+    position: relative;
+    z-index: 10;
 }
+
 
 
 /* Game Status */
@@ -385,23 +421,28 @@ body {
 /* Selection Hint */
 .select-hint {
     text-align: center;
-    font-size: 10px;
+    font-size: 11px;
     color: #94a3b8;
     margin-top: 8px;
     opacity: 0;
-    transition: opacity 0.3s ease;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
 .game-card:hover:not(.selected) .select-hint {
     opacity: 1;
 }
 
+.game-card.selected .select-hint {
+    opacity: 1;
+    color: #007aff;
+    font-weight: 700;
+}
+
 /* Details Panel */
 .details-panel {
-    flex: 0 0 52%;
+    flex: 0 0 50%;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 20px;
     box-shadow: 0 16px 48px rgba(0,0,0,0.08);
@@ -429,6 +470,7 @@ body {
     border-bottom: 1px solid #e2e8f0;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     backdrop-filter: blur(10px);
+    position: relative;
 }
 
 .details-title {
@@ -503,12 +545,188 @@ body {
     padding: 8px;
     border-radius: 8px;
     transition: all 0.3s ease;
+    order: -1; /* Move to left on desktop */
 }
 
 .close-btn:hover {
     background-color: #f1f5f9;
     color: #1e293b;
     transform: scale(1.1);
+}
+
+.expand-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.expand-btn:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    transform: scale(1.1);
+}
+
+.expand-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Full Page Container (New Page View) */
+.fullpage-container {
+    display: none;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+}
+
+.fullpage-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    min-height: 100vh;
+}
+
+.fullpage-header {
+    padding: 32px 0 40px 0;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 40px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 12px 16px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 24px;
+}
+
+.back-btn:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    transform: translateX(-2px);
+}
+
+.back-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.fullpage-game-header {
+    text-align: center;
+}
+
+.fullpage-team-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+}
+
+.fullpage-scores {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 48px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 16px 0;
+}
+
+.fullpage-score {
+    min-width: 80px;
+    text-align: center;
+}
+
+.fullpage-vs {
+    color: #64748b;
+    font-weight: 400;
+    font-size: 32px;
+}
+
+.fullpage-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 16px 0 8px 0;
+    background: linear-gradient(135deg, #1e293b 0%, #64748b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.fullpage-status {
+    font-size: 16px;
+    color: #ef4444;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.fullpage-status.live {
+    color: #10b981;
+}
+
+.fullpage-body {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+}
+
+/* Responsive adjustments for full page view */
+@media (max-width: 768px) {
+    .fullpage-content {
+        padding: 0 16px;
+    }
+    
+    .fullpage-header {
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .fullpage-team-logo {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .fullpage-scores {
+        font-size: 36px;
+        gap: 12px;
+    }
+    
+    .fullpage-vs {
+        font-size: 24px;
+    }
+    
+    .fullpage-title {
+        font-size: 24px;
+    }
+    
+    .fullpage-body {
+        gap: 24px;
+    }
 }
 
 .details-body {
@@ -722,36 +940,6 @@ body {
     border-bottom: none;
 }
 
-.play-item.new-play {
-    animation: slideInNew 2s ease-out;
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    border-radius: 8px;
-    margin: 4px 0;
-    padding: 16px 12px;
-    border: 1px solid #3b82f6;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-}
-
-@keyframes slideInNew {
-    0% {
-        transform: translateX(-100%) scale(0.9);
-        opacity: 0;
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-        border-color: #f59e0b;
-    }
-    50% {
-        transform: translateX(10px) scale(1.05);
-        opacity: 0.8;
-        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-        border-color: #2563eb;
-    }
-    100% {
-        transform: translateX(0) scale(1);
-        opacity: 1;
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-        border-color: #3b82f6;
-    }
-}
 
 .play-time {
     color: #6b7280;
@@ -770,73 +958,7 @@ body {
     line-height: 1.4;
 }
 
-.new-play .play-time,
-.new-play .play-team,
-.new-play .play-description {
-    color: #1e40af;
-    font-weight: 600;
-}
 
-/* Latest Play on Game Cards */
-.latest-play {
-    margin: 0;
-    padding: 0;
-    background: none;
-    border: none;
-    border-top: 1px solid #e2e8f0;
-    font-size: 12px;
-    opacity: 1;
-    height: 36px;
-    position: relative;
-    overflow: hidden;
-}
-
-.latest-play-wrapper {
-    position: relative;
-    height: 100%;
-    transition: transform 1s ease-out;
-}
-
-.latest-play.new-play-card .latest-play-wrapper {
-    animation: slideUpAndPush 1s ease-out;
-}
-
-@keyframes slideUpAndPush {
-    0% {
-        transform: translateY(100%);
-    }
-    100% {
-        transform: translateY(0);
-    }
-}
-
-.latest-play-content {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    line-height: 1.2;
-    padding: 12px 0;
-    height: 36px;
-    box-sizing: border-box;
-}
-
-.play-team-logo {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.play-desc-mini {
-    color: #64748b;
-    font-weight: 500;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.3;
-    font-size: 12px;
-}
 
 /* Stats Grid */
 .stats-grid {
@@ -892,6 +1014,17 @@ body {
         gap: 14px;
     }
     
+    .games-container.three-column-layout {
+        flex: 0 0 70%; /* Slightly less space on smaller screens */
+        grid-template-columns: repeat(3, minmax(260px, 1fr));
+        gap: 10px;
+    }
+    
+    .content-layout.has-selection .games-container.three-column-layout {
+        flex: 0 0 50%;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 8px;
+    }
 }
 
 @media (max-width: 1024px) {
@@ -904,80 +1037,223 @@ body {
         width: 100%;
     }
     
+    /* On tablets, Week 2 becomes standard 2-column layout */
+    .games-container.three-column-layout {
+        flex: none;
+        width: 100%;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
     .details-panel {
         display: none;
     }
     
-    /* Mobile inline expansion */
-    .mobile-details {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        border: 1px solid #e5e7eb;
-        margin: 8px 0;
+    /* Full-page mobile modal */
+    .mobile-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
         opacity: 0;
-        max-height: 0;
-        overflow: hidden;
-        transition: all 0.3s ease;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    .mobile-details.visible {
+    .mobile-modal.visible {
         opacity: 1;
-        max-height: 800px;
+        visibility: visible;
     }
     
-    .mobile-details-body {
+    .mobile-modal-content {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 24px 24px 0 0;
+        max-height: 92vh;
+        min-height: 50vh;
+        transform: translateY(100%);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
+    }
+    
+    .mobile-modal.visible .mobile-modal-content {
+        transform: translateY(0);
+    }
+    
+    .mobile-modal-header {
+        padding: 20px 0 16px 0;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 24px 24px 0 0;
+        z-index: 10;
+        min-height: fit-content;
+    }
+    
+    .mobile-modal-handle {
+        width: 40px;
+        height: 4px;
+        background: #d1d5db;
+        border-radius: 2px;
+        margin: 0 auto 12px auto;
+    }
+    
+    .mobile-header-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding: 0 20px 8px 20px;
+    }
+    
+    .mobile-expand {
+        width: 36px;
+        height: 36px;
+        padding: 6px;
+    }
+    
+    .mobile-expand svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .mobile-score-cards-container {
+        padding: 8px 0 20px 0;
+        border-bottom: 1px solid #e2e8f0;
+        min-height: fit-content;
+        overflow: visible;
+    }
+    
+    .mobile-score-cards-scroll {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        -webkit-overflow-scrolling: touch;
+        /* Add padding to center 60% width cards */
+        padding-left: 20vw; /* (100% - 60%) / 2 for centering */
+        padding-right: 20vw;
+        padding-top: 16px;
+        /* Hide scrollbar across browsers */
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+        scroll-snap-type: x mandatory;
+    }
+    
+    .mobile-score-cards-scroll::-webkit-scrollbar {
+        display: none; /* Chrome/Safari/Webkit */
+    }
+    
+    .mobile-game-score-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
         padding: 16px;
-        max-height: 70vh;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        flex: 0 0 60vw; /* All cards same width - 60% of viewport */
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        scroll-snap-align: center;
+    }
+    
+    .mobile-game-score-card.active {
+        border-color: #007aff;
+        box-shadow: 
+            0 0 0 2px rgba(0, 122, 255, 0.15),
+            0 8px 24px rgba(0, 122, 255, 0.15);
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        transform: scale(1.05) translateY(-4px);
+        transform-origin: center bottom;
+        z-index: 2;
+    }
+    
+    .mobile-game-score-card:hover:not(.active) {
+        transform: translateY(-2px) scale(1.02);
+        transform-origin: center bottom;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e1;
+    }
+    
+    .mobile-score-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .mobile-team-logo {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+    }
+    
+    .mobile-score-display {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 24px;
+        font-weight: 800;
+        color: #1e293b;
+    }
+    
+    .mobile-vs {
+        color: #64748b;
+        font-weight: 400;
+        font-size: 20px;
+    }
+    
+    .mobile-game-title {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 6px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .mobile-game-status {
+        text-align: center;
+        font-size: 12px;
+        color: #ef4444;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .mobile-game-status.live {
+        color: #10b981;
+    }
+    
+    
+    .mobile-modal-body {
+        padding: 0 20px 20px 20px;
+        max-height: calc(90vh - 180px);
         overflow-y: auto;
     }
     
-    .mobile-details-body::-webkit-scrollbar {
+    .mobile-modal-body::-webkit-scrollbar {
         width: 4px;
     }
     
-    .mobile-details-body::-webkit-scrollbar-track {
+    .mobile-modal-body::-webkit-scrollbar-track {
         background: #f1f5f9;
         border-radius: 2px;
     }
     
-    .mobile-details-body::-webkit-scrollbar-thumb {
+    .mobile-modal-body::-webkit-scrollbar-thumb {
         background: #cbd5e1;
         border-radius: 2px;
     }
     
-    /* Mobile header adjustments */
-    .mobile-details .header-team-logo {
-        width: 32px;
-        height: 32px;
-    }
-    
-    .mobile-details .header-scores {
-        font-size: 20px;
-    }
-    
-    .mobile-details .details-header h3 {
-        font-size: 16px;
-    }
-    
-    .mobile-details .play-button {
-        width: 50px;
-        height: 50px;
-        font-size: 20px;
-    }
-    
-    .mobile-details .video-title {
-        font-size: 14px;
-    }
-    
-    .mobile-details .video-duration {
-        font-size: 11px;
-        padding: 3px 6px;
-    }
-    
-    .mobile-details .video-bg {
-        padding: 10px;
-    }
 }
 
 @media (max-width: 768px) {
@@ -988,6 +1264,12 @@ body {
     
     .games-container {
         grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    /* Force 2 columns on mobile for Week 2 to match other weeks */
+    .games-container.three-column-layout {
+        grid-template-columns: repeat(2, 1fr);
         gap: 16px;
     }
     
@@ -1032,6 +1314,11 @@ body {
     .details-body {
         padding: 16px;
         height: calc(90vh - 68px);
+    }
+    
+    /* Mobile adjustments for header buttons */
+    .close-btn {
+        order: 0; /* Reset order on mobile */
     }
     
     .play-item {
@@ -1128,23 +1415,6 @@ body {
         padding: 16px;
     }
     
-    .latest-play {
-        height: 32px;
-    }
-    
-    .latest-play-content {
-        padding: 10px 0;
-        height: 32px;
-    }
-    
-    .play-team-logo {
-        width: 18px;
-        height: 18px;
-    }
-    
-    .play-desc-mini {
-        font-size: 11px;
-    }
     
     .video-title {
         font-size: 14px;
