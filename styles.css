@@ -697,13 +697,19 @@ body {
 
 /* Responsive adjustments for full page view */
 @media (max-width: 768px) {
+    .fullpage-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+        padding-top: 20px; /* Add some top padding for mobile */
+    }
+    
     .fullpage-content {
         padding: 0 16px;
     }
     
     .fullpage-header {
-        padding: 24px;
-        margin-bottom: 24px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 16px; /* Smaller border radius on mobile */
     }
     
     .fullpage-team-logo {
@@ -712,20 +718,32 @@ body {
     }
     
     .fullpage-scores {
-        font-size: 36px;
-        gap: 12px;
+        font-size: 32px;
+        gap: 10px;
+        margin: 12px 0;
     }
     
     .fullpage-vs {
-        font-size: 24px;
+        font-size: 20px;
     }
     
     .fullpage-title {
-        font-size: 24px;
+        font-size: 22px;
+        margin: 12px 0 6px 0;
+    }
+    
+    .fullpage-status {
+        font-size: 14px;
     }
     
     .fullpage-body {
-        gap: 24px;
+        gap: 20px;
+    }
+    
+    .back-btn {
+        padding: 10px 14px;
+        font-size: 14px;
+        margin-bottom: 20px;
     }
 }
 
