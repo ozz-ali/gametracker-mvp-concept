@@ -46,9 +46,9 @@
                 <div class="week-filter-container">
                     <div class="dropdown-container">
                         <select id="week-select" class="week-dropdown">
-                            <option value="1">Week 1 - $$$</option>
-                            <option value="2">Week 2</option>
-                            <option value="3" selected>Week 3</option>
+                            <option value="1" selected>Week 1 - $$$</option>
+                            <option value="2">Week 2 - 3 Col</option>
+                            <option value="3">Week 3 - Always On</option>
                             <option value="4">Week 4</option>
                             <option value="5">Week 5</option>
                             <option value="6">Week 6</option>
@@ -88,6 +88,95 @@
             </div>
         </div>
     </main>
+
+    <!-- Video Rail -->
+    <div class="video-rail" id="videoRail">
+        <div class="video-rail-header">
+            <div class="video-rail-title-container">
+                <span class="video-rail-title" id="videoRailTitle">CBS Sports HQ</span>
+                <div class="playing-indicator" id="playingIndicator">
+                    <div class="playing-bar"></div>
+                    <div class="playing-bar"></div>
+                    <div class="playing-bar"></div>
+                    <div class="playing-bar"></div>
+                </div>
+            </div>
+            <button class="video-rail-collapse" id="videoRailCollapse" aria-label="Collapse video rail">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 9l6 6 6-6"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="video-rail-content" id="videoRailContent">
+            <!-- Main Video Player -->
+            <div class="main-video-container">
+                <div class="main-video-player">
+                    <div class="video-thumbnail main-video">
+                        <img src="https://picsum.photos/320/180?random=100" alt="Main video thumbnail" class="video-bg-image">
+                        <div class="video-overlay">
+                            <div class="video-info">
+                                <div class="video-title-main">CBS Sports HQ</div>
+                                <div class="video-duration-main">Live</div>
+                            </div>
+                            <button class="play-button-main">▶</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Video Playlist -->
+            <div class="video-playlist">
+                <div class="playlist-header">
+                    <h4>More Highlights</h4>
+                </div>
+                <div class="playlist-scroll" id="playlistScroll">
+                    <div class="playlist-item active" data-video-id="1">
+                        <img src="https://picsum.photos/120/68?random=101" alt="Video thumbnail" class="playlist-thumbnail">
+                        <div class="playlist-info">
+                            <div class="playlist-title">Bears vs Lions Final Drive</div>
+                            <div class="playlist-duration">2:15</div>
+                        </div>
+                    </div>
+                    <div class="playlist-item" data-video-id="2">
+                        <img src="https://picsum.photos/120/68?random=102" alt="Video thumbnail" class="playlist-thumbnail">
+                        <div class="playlist-info">
+                            <div class="playlist-title">Cowboys OT Touchdown</div>
+                            <div class="playlist-duration">1:45</div>
+                        </div>
+                    </div>
+                    <div class="playlist-item" data-video-id="3">
+                        <img src="https://picsum.photos/120/68?random=103" alt="Video thumbnail" class="playlist-thumbnail">
+                        <div class="playlist-info">
+                            <div class="playlist-title">49ers Best Plays</div>
+                            <div class="playlist-duration">3:22</div>
+                        </div>
+                    </div>
+                    <div class="playlist-item" data-video-id="4">
+                        <img src="https://picsum.photos/120/68?random=104" alt="Video thumbnail" class="playlist-thumbnail">
+                        <div class="playlist-info">
+                            <div class="playlist-title">Seahawks Defense Highlights</div>
+                            <div class="playlist-duration">2:58</div>
+                        </div>
+                    </div>
+                    <div class="playlist-item" data-video-id="5">
+                        <img src="https://picsum.photos/120/68?random=105" alt="Video thumbnail" class="playlist-thumbnail">
+                        <div class="playlist-info">
+                            <div class="playlist-title">Bills Rushing Attack</div>
+                            <div class="playlist-duration">1:33</div>
+                        </div>
+                    </div>
+                    <div class="playlist-item" data-video-id="6">
+                        <img src="https://picsum.photos/120/68?random=106" alt="Video thumbnail" class="playlist-thumbnail">
+                        <div class="playlist-info">
+                            <div class="playlist-title">Ravens vs Packers Highlights</div>
+                            <div class="playlist-duration">4:12</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

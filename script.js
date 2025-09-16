@@ -30,6 +30,7 @@ let liveUpdateIntervals = new Map();
 let gamePlayHistories = new Map();
 let scrollTimeout = null;
 let isFullPageView = false;
+let isFullscreenModal = false;
 
 // NFL Game Data with additional games
 const nflGames = [
@@ -523,9 +524,13 @@ function createDetailsContent(game, gameIndex) {
         </div>
     ` : '';
     
+    const weekSelect = document.getElementById('week-select');
+    const selectedWeek = weekSelect ? weekSelect.value : '1';
+    const isAlwaysOnMode = selectedWeek === '3' || selectedWeek === '4';
+    
     return `
         <div class="details-header">
-            <button class="close-btn" onclick="closeGameDetails()" aria-label="Close details">&times;</button>
+            ${!isAlwaysOnMode ? '<button class="close-btn" onclick="closeGameDetails()" aria-label="Close details">&times;</button>' : ''}
             <div class="details-title">
                 <div class="team-logos-header">
                     <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/32x32/666/fff?text=' + game.awayTeam.shortName}" alt="${game.awayTeam.name} logo" class="header-team-logo">
@@ -539,10 +544,12 @@ function createDetailsContent(game, gameIndex) {
                 <h3>${game.awayTeam.name} @ ${game.homeTeam.name}</h3>
                 <div class="header-status">${game.status.main}</div>
             </div>
-            <button class="expand-btn" onclick="expandGameDetails()" aria-label="Expand to full page">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M7 7h10v10"></path>
-                    <path d="M7 17L17 7"></path>
+            <button class="expand-btn" onclick="toggleFullscreenModal()" aria-label="Toggle fullscreen view">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="expand-icon">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="minimize-icon" style="display: none;">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
                 </svg>
             </button>
         </div>
@@ -648,8 +655,18 @@ function isMobile() {
 function toggleGameDetails(gameIndex) {
     console.log('toggleGameDetails called:', { gameIndex, currentSelected: selectedGameIndex, isFullPageView });
     
+    // Check if we're on Week 3 or Week 4 - Always On mode
+    const weekSelect = document.getElementById('week-select');
+    const selectedWeek = weekSelect ? weekSelect.value : '1';
+    const isAlwaysOnMode = selectedWeek === '3' || selectedWeek === '4';
+    
     if (selectedGameIndex === gameIndex) {
-        closeGameDetails();
+        // On Week 3 and Week 4, don't allow deselecting the current game
+        if (isAlwaysOnMode) {
+            return; // Do nothing - keep the current game selected
+        } else {
+            closeGameDetails();
+        }
     } else {
         selectedGameIndex = gameIndex;
         console.log('toggleGameDetails: set selectedGameIndex to', gameIndex);
@@ -666,9 +683,31 @@ function toggleGameDetails(gameIndex) {
 
 // Close game details
 function closeGameDetails() {
+    // Check if we're on Week 3 or Week 4 - Always On mode
+    const weekSelect = document.getElementById('week-select');
+    const selectedWeek = weekSelect ? weekSelect.value : '1';
+    const isAlwaysOnMode = selectedWeek === '3' || selectedWeek === '4';
+    
+    // Prevent closing on Week 3 and Week 4 - Always On
+    if (isAlwaysOnMode) {
+        return;
+    }
+    
     const wasFullPageView = isFullPageView;
     selectedGameIndex = -1;
     isFullPageView = false;
+    
+    // Reset fullscreen modal state
+    if (isFullscreenModal) {
+        isFullscreenModal = false;
+        const detailsPanel = document.getElementById('detailsPanel');
+        const contentLayout = document.getElementById('contentLayout');
+        const videoRail = document.getElementById('videoRail');
+        
+        if (detailsPanel) detailsPanel.classList.remove('fullscreen-modal');
+        if (contentLayout) contentLayout.classList.remove('modal-fullscreen');
+        if (videoRail) videoRail.style.display = 'block';
+    }
     
     // Close modals appropriately
     if (isMobile()) {
@@ -685,6 +724,58 @@ function closeGameDetails() {
     // Only update layout if we weren't in full page view to prevent modal re-triggering
     if (!wasFullPageView) {
         updateLayout();
+    }
+}
+
+// Toggle fullscreen modal view
+function toggleFullscreenModal() {
+    // On mobile, use the existing full page view
+    if (isMobile()) {
+        if (isFullPageView) {
+            closeGameDetails();
+        } else {
+            expandGameDetails();
+        }
+        return;
+    }
+    
+    const detailsPanel = document.getElementById('detailsPanel');
+    const contentLayout = document.getElementById('contentLayout');
+    const expandIcons = document.querySelectorAll('.expand-icon');
+    const minimizeIcons = document.querySelectorAll('.minimize-icon');
+    
+    if (!detailsPanel) return;
+    
+    isFullscreenModal = !isFullscreenModal;
+    
+    if (isFullscreenModal) {
+        // Expand to fullscreen
+        detailsPanel.classList.add('fullscreen-modal');
+        contentLayout.classList.add('modal-fullscreen');
+        
+        // Switch icons
+        expandIcons.forEach(icon => icon.style.display = 'none');
+        minimizeIcons.forEach(icon => icon.style.display = 'block');
+        
+        // Hide video rail when in fullscreen
+        const videoRail = document.getElementById('videoRail');
+        if (videoRail) {
+            videoRail.style.display = 'none';
+        }
+    } else {
+        // Return to normal view
+        detailsPanel.classList.remove('fullscreen-modal');
+        contentLayout.classList.remove('modal-fullscreen');
+        
+        // Switch icons back
+        expandIcons.forEach(icon => icon.style.display = 'block');
+        minimizeIcons.forEach(icon => icon.style.display = 'none');
+        
+        // Show video rail again
+        const videoRail = document.getElementById('videoRail');
+        if (videoRail) {
+            videoRail.style.display = 'block';
+        }
     }
 }
 
@@ -1171,10 +1262,12 @@ function createMobileModalContent(game, gameIndex) {
         <div class="mobile-modal-header">
             <div class="mobile-modal-handle"></div>
             <div class="mobile-header-actions">
-                <button class="expand-btn mobile-expand" onclick="expandGameDetails()" aria-label="Expand to full page">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M7 7h10v10"></path>
-                        <path d="M7 17L17 7"></path>
+                <button class="expand-btn mobile-expand" onclick="toggleFullscreenModal()" aria-label="Toggle fullscreen view">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="expand-icon">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                    </svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="minimize-icon" style="display: none;">
+                        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
                     </svg>
                 </button>
             </div>
@@ -1311,6 +1404,16 @@ function updateMobileModal() {
         // Add click outside to close
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
+                // Check if we're on Week 3 or Week 4 - Always On mode
+                const weekSelect = document.getElementById('week-select');
+                const selectedWeek = weekSelect ? weekSelect.value : '1';
+                const isAlwaysOnMode = selectedWeek === '3' || selectedWeek === '4';
+                
+                // Don't allow click outside to close on Week 3 and Week 4
+                if (isAlwaysOnMode) {
+                    return;
+                }
+                
                 // If we're in full page view, just close the modal without affecting the full page view
                 if (isFullPageView) {
                     closeMobileModal();
@@ -1645,8 +1748,12 @@ function createGameCard(game, gameIndex) {
     const isSelected = selectedGameIndex === gameIndex;
     const liveGame = isGameLive(game);
     
-    // Check if we're in collapsed view (when any game is selected on desktop)
+    // Check if we're in collapsed view with more than 3 columns (Week 1 only)
+    const weekSelect = document.getElementById('week-select');
+    const selectedWeek = weekSelect ? weekSelect.value : '1';
     const isCollapsed = selectedGameIndex >= 0 && !isMobile();
+    const hasMoreThan3Columns = selectedWeek === '1'; // Week 1 has 4 columns
+    const shouldUseAbbreviations = isCollapsed && hasMoreThan3Columns;
     
     const statusHtml = game.status.network 
         ? `<div class="status-main ${liveGame ? 'live' : ''}">${game.status.main}</div><div class="status-network">${game.status.network}</div>`
@@ -1664,13 +1771,13 @@ function createGameCard(game, gameIndex) {
 
     const hintText = isSelected ? 'Selected' : 'Tap to view details';
 
-    // Use abbreviations when collapsed, full names when not collapsed
-    const awayTeamName = isCollapsed ? game.awayTeam.shortName : game.awayTeam.name;
-    const homeTeamName = isCollapsed ? game.homeTeam.shortName : game.homeTeam.name;
+    // Use abbreviations only when collapsed AND there are more than 3 columns (Week 1)
+    const awayTeamName = shouldUseAbbreviations ? game.awayTeam.shortName : game.awayTeam.name;
+    const homeTeamName = shouldUseAbbreviations ? game.homeTeam.shortName : game.homeTeam.name;
     
-    // Show records only when not collapsed
-    const awayRecordHtml = (!isCollapsed && game.awayTeam.record) ? `<span class="team-record">${game.awayTeam.record}</span>` : '';
-    const homeRecordHtml = (!isCollapsed && game.homeTeam.record) ? `<span class="team-record">${game.homeTeam.record}</span>` : '';
+    // Show records only when not using abbreviations
+    const awayRecordHtml = (!shouldUseAbbreviations && game.awayTeam.record) ? `<span class="team-record">${game.awayTeam.record}</span>` : '';
+    const homeRecordHtml = (!shouldUseAbbreviations && game.homeTeam.record) ? `<span class="team-record">${game.homeTeam.record}</span>` : '';
 
     return `
         <div class="game-card ${isSelected ? 'selected' : ''} ${liveGame ? 'live' : ''}" 
@@ -1736,20 +1843,44 @@ function initializeLiveUpdates() {
 function updateWeekLayout() {
     const weekSelect = document.getElementById('week-select');
     const gamesContainer = document.getElementById('gamesContainer');
+    const contentLayout = document.getElementById('contentLayout');
     
-    if (weekSelect && gamesContainer) {
+    if (weekSelect && gamesContainer && contentLayout) {
         const selectedWeek = weekSelect.value;
         
         // Remove all layout classes first
-        gamesContainer.classList.remove('two-column-layout', 'three-column-layout', 'four-column-layout');
+        gamesContainer.classList.remove('two-column-layout', 'three-column-layout', 'four-column-layout', 'vertical-tabs-layout');
+        contentLayout.classList.remove('week4-vertical-tabs');
         
         // Apply appropriate layout for each week
         if (selectedWeek === '1') {
             gamesContainer.classList.add('four-column-layout');
         } else if (selectedWeek === '2') {
             gamesContainer.classList.add('three-column-layout');
+        } else if (selectedWeek === '4') {
+            gamesContainer.classList.add('vertical-tabs-layout');
+            contentLayout.classList.add('week4-vertical-tabs');
         } else {
             gamesContainer.classList.add('two-column-layout');
+        }
+        
+        // Special handling for Week 3 and Week 4 - Always On
+        if (selectedWeek === '3' || selectedWeek === '4') {
+            // Auto-select first game if none selected or if currently selected index is invalid
+            if (selectedGameIndex < 0) {
+                selectedGameIndex = 0;
+                updateLayout();
+                
+                // Start live updates for the first game if it's live
+                const sortedGames = getSortedGames();
+                const game = sortedGames[0];
+                if (isGameLive(game)) {
+                    startLiveUpdates(0);
+                }
+            }
+        } else {
+            // For other weeks, if we were on Week 3/4 before, we might need to maintain selection
+            // but allow normal closing behavior
         }
         
         // Update layout classes to handle week-specific styling
@@ -1775,6 +1906,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const weekSelect = document.getElementById('week-select');
     if (weekSelect) {
         weekSelect.addEventListener('change', function() {
+            // If switching away from Week 3, reset selection to allow normal behavior
+            if (weekSelect.value !== '3' && selectedGameIndex >= 0) {
+                // Keep current selection but allow normal closing behavior
+            }
             updateWeekLayout();
         });
     }
@@ -1782,6 +1917,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close details panel when pressing Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && (selectedGameIndex >= 0 || isFullPageView)) {
+            // Check if we're on Week 3 or Week 4 - Always On mode
+            const weekSelect = document.getElementById('week-select');
+            const selectedWeek = weekSelect ? weekSelect.value : '1';
+            const isAlwaysOnMode = selectedWeek === '3' || selectedWeek === '4';
+            
+            // Don't allow escape to close on Week 3 and Week 4
+            if (isAlwaysOnMode) {
+                return;
+            }
+            
             // If we're in full page view and mobile modal is open, just close the modal
             const mobileModal = document.getElementById('mobileModal');
             if (isFullPageView && isMobile() && mobileModal && mobileModal.classList.contains('visible')) {
@@ -1804,4 +1949,106 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeunload', function() {
         stopAllLiveUpdates();
     });
+    
+    // Initialize video rail
+    initializeVideoRail();
 });
+
+// Video Rail Functionality
+let videoRailCollapsed = false;
+
+function initializeVideoRail() {
+    const collapseButton = document.getElementById('videoRailCollapse');
+    const playlistItems = document.querySelectorAll('.playlist-item');
+    const mainVideoPlayer = document.querySelector('.main-video-player');
+    
+    // Collapse/Expand functionality
+    if (collapseButton) {
+        collapseButton.addEventListener('click', toggleVideoRail);
+    }
+    
+    // Playlist item selection
+    playlistItems.forEach(item => {
+        item.addEventListener('click', function() {
+            selectPlaylistItem(this);
+        });
+    });
+    
+    // Main video play button
+    if (mainVideoPlayer) {
+        mainVideoPlayer.addEventListener('click', playMainVideo);
+    }
+}
+
+function toggleVideoRail() {
+    const videoRail = document.getElementById('videoRail');
+    videoRailCollapsed = !videoRailCollapsed;
+    
+    if (videoRailCollapsed) {
+        videoRail.classList.add('collapsed');
+    } else {
+        videoRail.classList.remove('collapsed');
+    }
+}
+
+function selectPlaylistItem(clickedItem) {
+    // Remove active class from all items
+    const allItems = document.querySelectorAll('.playlist-item');
+    allItems.forEach(item => item.classList.remove('active'));
+    
+    // Add active class to clicked item
+    clickedItem.classList.add('active');
+    
+    // Update main video with selected item's content
+    const videoTitle = clickedItem.querySelector('.playlist-title').textContent;
+    const videoDuration = clickedItem.querySelector('.playlist-duration').textContent;
+    const videoId = clickedItem.getAttribute('data-video-id');
+    
+    // Update main video thumbnail (using different random image based on video ID)
+    const mainVideoImage = document.querySelector('.video-bg-image');
+    const mainVideoTitle = document.querySelector('.video-title-main');
+    const mainVideoDuration = document.querySelector('.video-duration-main');
+    const railTitle = document.getElementById('videoRailTitle');
+    
+    if (mainVideoImage && mainVideoTitle && mainVideoDuration && railTitle) {
+        mainVideoImage.src = `https://picsum.photos/320/180?random=${100 + parseInt(videoId)}`;
+        mainVideoTitle.textContent = videoTitle;
+        mainVideoDuration.textContent = videoDuration;
+        // Update the rail title to match the currently playing video
+        railTitle.textContent = videoTitle;
+    }
+    
+    // Add a subtle animation to indicate the change
+    const mainVideoContainer = document.querySelector('.main-video-player');
+    if (mainVideoContainer) {
+        mainVideoContainer.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            mainVideoContainer.style.transform = 'scale(1)';
+        }, 150);
+    }
+}
+
+function playMainVideo() {
+    // This would integrate with a real video player
+    // For now, just show a visual feedback
+    const playButton = document.querySelector('.play-button-main');
+    const railTitle = document.getElementById('videoRailTitle');
+    const mainVideoTitle = document.querySelector('.video-title-main');
+    
+    if (playButton) {
+        playButton.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        playButton.textContent = '⏸';
+        
+        setTimeout(() => {
+            playButton.style.transform = 'translate(-50%, -50%) scale(1)';
+            playButton.textContent = '▶';
+        }, 1000);
+    }
+    
+    // Ensure the rail title matches the main video title when playing
+    if (railTitle && mainVideoTitle) {
+        railTitle.textContent = mainVideoTitle.textContent;
+    }
+    
+    console.log('Playing video:', mainVideoTitle.textContent);
+}
