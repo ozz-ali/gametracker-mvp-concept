@@ -34,6 +34,7 @@ const teamLogos = {
 
 // Game state management
 let selectedGameIndex = -1;
+let previousGameIndex = -1; // Track previous game for scroll reset logic
 let liveUpdateIntervals = new Map();
 let gamePlayHistories = new Map();
 let scrollTimeout = null;
@@ -541,6 +542,163 @@ function togglePlaysExpansion(containerId) {
     }
 }
 
+// Generate team-associated thumbnail for highlights
+function getGameThumbnail(game) {
+    // Use the same NFL stadium action image that BUF @ NYJ uses for all games
+    return 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=400&h=225&fit=crop&q=80';
+}
+
+// Generate clean team statistics with center categories and team color highlights
+function generateTeamStatistics(game) {
+    // Define team colors for highlighting (using common NFL team colors)
+    const teamColors = {
+        'falcons': '#A71930', 'vikings': '#4F2683', 'bears': '#0B162A', 'lions': '#0076B6',
+        'giants': '#0F4D92', 'cowboys': '#041E42', 'niners': '#AA0000', 'saints': '#D3BC8D',
+        'seahawks': '#002244', 'steelers': '#FFB612', 'bills': '#00338D', 'jets': '#125740',
+        'chiefs': '#E31837', 'raiders': '#000000', 'broncos': '#FB4F14', 'chargers': '#0080C6',
+        'patriots': '#002244', 'dolphins': '#008E97', 'rams': '#003594', 'cardinals': '#97233F',
+        'packers': '#203731', 'ravens': '#241773', 'titans': '#0C2340', 'colts': '#002C5F',
+        'texans': '#03202F', 'jaguars': '#101820', 'bengals': '#FB4F14', 'browns': '#311D00',
+        'panthers': '#0085CA', 'buccaneers': '#D50A0A'
+    };
+
+    const awayColor = teamColors[game.awayTeam.logo] || '#6B7280';
+    const homeColor = teamColors[game.homeTeam.logo] || '#6B7280';
+
+    const stats = [
+        {
+            category: 'Time of possession',
+            awayValue: '27:34',
+            homeValue: '32:26',
+            awayNumeric: 27.34,
+            homeNumeric: 32.26,
+            higherIsBetter: true
+        },
+        {
+            category: 'Total yards',
+            awayValue: '230',
+            homeValue: '404',
+            awayNumeric: 230,
+            homeNumeric: 404,
+            higherIsBetter: true
+        },
+        {
+            category: 'Total plays',
+            awayValue: '65',
+            homeValue: '63',
+            awayNumeric: 65,
+            homeNumeric: 63,
+            higherIsBetter: true
+        },
+        {
+            category: 'Yards per play',
+            awayValue: '3.5',
+            homeValue: '6.4',
+            awayNumeric: 3.5,
+            homeNumeric: 6.4,
+            higherIsBetter: true
+        },
+        {
+            category: 'Pass yards',
+            awayValue: '179',
+            homeValue: '269',
+            awayNumeric: 179,
+            homeNumeric: 269,
+            higherIsBetter: true
+        },
+        {
+            category: 'Yards per pass',
+            awayValue: '4.3',
+            homeValue: '8.7',
+            awayNumeric: 4.3,
+            homeNumeric: 8.7,
+            higherIsBetter: true
+        },
+        {
+            category: 'Rushing yards',
+            awayValue: '51',
+            homeValue: '135',
+            awayNumeric: 51,
+            homeNumeric: 135,
+            higherIsBetter: true
+        },
+        {
+            category: 'Rush average',
+            awayValue: '2.7',
+            homeValue: '4.5',
+            awayNumeric: 2.7,
+            homeNumeric: 4.5,
+            higherIsBetter: true
+        },
+        {
+            category: 'Turnovers',
+            awayValue: '0',
+            homeValue: '0',
+            awayNumeric: 0,
+            homeNumeric: 0,
+            higherIsBetter: false
+        },
+        {
+            category: 'First downs',
+            awayValue: '18',
+            homeValue: '24',
+            awayNumeric: 18,
+            homeNumeric: 24,
+            higherIsBetter: true
+        }
+    ];
+
+    const statsHtml = stats.map(stat => {
+        let awayLeading = false;
+        let homeLeading = false;
+        
+        if (stat.awayNumeric !== stat.homeNumeric) {
+            if (stat.higherIsBetter) {
+                awayLeading = stat.awayNumeric > stat.homeNumeric;
+                homeLeading = stat.homeNumeric > stat.awayNumeric;
+            } else {
+                awayLeading = stat.awayNumeric < stat.homeNumeric;
+                homeLeading = stat.homeNumeric < stat.awayNumeric;
+            }
+        }
+        
+        return `
+            <div class="clean-stat-row">
+                <div class="stat-value-clean ${awayLeading ? 'leading' : ''}" 
+                     ${awayLeading ? `style="background-color: ${awayColor}; color: white;"` : ''}>
+                    ${stat.awayValue}
+                </div>
+                <div class="stat-category-clean">${stat.category}</div>
+                <div class="stat-value-clean ${homeLeading ? 'leading' : ''}"
+                     ${homeLeading ? `style="background-color: ${homeColor}; color: white;"` : ''}>
+                    ${stat.homeValue}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="clean-stats-container">
+            <div class="stats-teams-header-clean">
+                <div class="stats-team-left-clean">
+                    <img src="${teamLogos[game.awayTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + game.awayTeam.shortName}" 
+                         alt="${game.awayTeam.name} logo" class="stats-team-logo-clean">
+                    <span class="stats-team-name-clean">${game.awayTeam.shortName}</span>
+                </div>
+                <div class="stats-title-clean">vs</div>
+                <div class="stats-team-right-clean">
+                    <span class="stats-team-name-clean">${game.homeTeam.shortName}</span>
+                    <img src="${teamLogos[game.homeTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + game.homeTeam.shortName}" 
+                         alt="${game.homeTeam.name} logo" class="stats-team-logo-clean">
+                </div>
+            </div>
+            <div class="clean-stats-grid">
+                ${statsHtml}
+            </div>
+        </div>
+    `;
+}
+
 // Generate sample detailed game data
 function getGameDetails(game, gameIndex) {
     // Initialize play history if not exists
@@ -670,7 +828,7 @@ function createDetailsContent(game, gameIndex) {
         <div class="details-section">
             <div class="highlights-container">
                 <div class="video-placeholder">
-                    <div class="video-thumbnail">
+                    <div class="video-thumbnail" style="background-image: url('${getGameThumbnail(game)}'); background-size: cover; background-position: center;">
                         <div class="video-bg">
                             <div class="video-title">Game Highlights</div>
                             <div class="video-duration">4:32</div>
@@ -757,43 +915,12 @@ function createDetailsContent(game, gameIndex) {
             
             <div class="details-section">
                 <h4>Recent Plays</h4>
-                ${generateExpandablePlays(details.plays, `plays-container-${Date.now()}-${Math.floor(Math.random() * 1000)}`)}
+                ${generateExpandablePlays(details.plays, `consistent-plays-container-${gameIndex}`)}
             </div>
             
             <div class="details-section">
                 <h4>Team Statistics</h4>
-                <div class="stats-grid">
-                    <div class="stats-header">
-                        <span class="stat-category">Category</span>
-                        <span class="stat-team">${game.awayTeam.shortName}</span>
-                        <span class="stat-team">${game.homeTeam.shortName}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Total Yards</span>
-                        <span class="stat-value">342</span>
-                        <span class="stat-value">289</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Passing Yards</span>
-                        <span class="stat-value">245</span>
-                        <span class="stat-value">198</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Rushing Yards</span>
-                        <span class="stat-value">97</span>
-                        <span class="stat-value">91</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Turnovers</span>
-                        <span class="stat-value">1</span>
-                        <span class="stat-value">2</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Time of Possession</span>
-                        <span class="stat-value">32:15</span>
-                        <span class="stat-value">27:45</span>
-                    </div>
-                </div>
+                ${generateTeamStatistics(game)}
             </div>
         </div>
     `;
@@ -821,6 +948,8 @@ function toggleGameDetails(gameIndex) {
             closeGameDetails();
         }
     } else {
+        // Track previous game index for scroll reset logic
+        previousGameIndex = selectedGameIndex;
         selectedGameIndex = gameIndex;
         console.log('toggleGameDetails: set selectedGameIndex to', gameIndex);
         updateLayout();
@@ -848,6 +977,7 @@ function closeGameDetails() {
     
     const wasFullPageView = isFullPageView;
     selectedGameIndex = -1;
+    previousGameIndex = -1; // Reset tracking when closing details
     isFullPageView = false;
     
     // Reset fullscreen modal state
@@ -1200,7 +1330,7 @@ function createMobileFullPageLayout(game, gameIndex) {
         <div class="mobile-details-section">
             <div class="highlights-container">
                 <div class="video-placeholder">
-                    <div class="video-thumbnail">
+                    <div class="video-thumbnail" style="background-image: url('${getGameThumbnail(game)}'); background-size: cover; background-position: center;">
                         <div class="video-bg">
                             <div class="video-title">Game Highlights</div>
                             <div class="video-duration">4:32</div>
@@ -1312,38 +1442,7 @@ function createMobileFullPageLayout(game, gameIndex) {
             
             <div class="mobile-details-section">
                 <h4>Team Statistics</h4>
-                <div class="stats-grid">
-                    <div class="stats-header">
-                        <span class="stat-category">Category</span>
-                        <span class="stat-team">${game.awayTeam.shortName}</span>
-                        <span class="stat-team">${game.homeTeam.shortName}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Total Yards</span>
-                        <span class="stat-value">342</span>
-                        <span class="stat-value">289</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Passing Yards</span>
-                        <span class="stat-value">245</span>
-                        <span class="stat-value">198</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Rushing Yards</span>
-                        <span class="stat-value">97</span>
-                        <span class="stat-value">91</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Turnovers</span>
-                        <span class="stat-value">1</span>
-                        <span class="stat-value">2</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Time of Possession</span>
-                        <span class="stat-value">32:15</span>
-                        <span class="stat-value">27:45</span>
-                    </div>
-                </div>
+                ${generateTeamStatistics(game)}
             </div>
         </div>
     `;
@@ -1360,7 +1459,7 @@ function createFullPageLayout(game, gameIndex) {
         <div class="details-section">
             <div class="highlights-container">
                 <div class="video-placeholder">
-                    <div class="video-thumbnail">
+                    <div class="video-thumbnail" style="background-image: url('${getGameThumbnail(game)}'); background-size: cover; background-position: center;">
                         <div class="video-bg">
                             <div class="video-title">Game Highlights</div>
                             <div class="video-duration">4:32</div>
@@ -1497,7 +1596,7 @@ function createFullPageContent(game, gameIndex) {
         <div class="details-section">
             <div class="highlights-container">
                 <div class="video-placeholder">
-                    <div class="video-thumbnail">
+                    <div class="video-thumbnail" style="background-image: url('${getGameThumbnail(game)}'); background-size: cover; background-position: center;">
                         <div class="video-bg">
                             <div class="video-title">Game Highlights</div>
                             <div class="video-duration">4:32</div>
@@ -1555,43 +1654,12 @@ function createFullPageContent(game, gameIndex) {
             
             <div class="details-section">
                 <h4>Recent Plays</h4>
-                ${generateExpandablePlays(details.plays, `plays-container-${Date.now()}-${Math.floor(Math.random() * 1000)}`)}
+                ${generateExpandablePlays(details.plays, `consistent-plays-container-${gameIndex}`)}
             </div>
             
             <div class="details-section">
                 <h4>Team Statistics</h4>
-                <div class="stats-grid">
-                    <div class="stats-header">
-                        <span class="stat-category">Category</span>
-                        <span class="stat-team">${game.awayTeam.shortName}</span>
-                        <span class="stat-team">${game.homeTeam.shortName}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Total Yards</span>
-                        <span class="stat-value">342</span>
-                        <span class="stat-value">289</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Passing Yards</span>
-                        <span class="stat-value">245</span>
-                        <span class="stat-value">198</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Rushing Yards</span>
-                        <span class="stat-value">97</span>
-                        <span class="stat-value">91</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Turnovers</span>
-                        <span class="stat-value">1</span>
-                        <span class="stat-value">2</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Time of Possession</span>
-                        <span class="stat-value">32:15</span>
-                        <span class="stat-value">27:45</span>
-                    </div>
-                </div>
+                ${generateTeamStatistics(game)}
             </div>
         </div>
     `;
@@ -1659,9 +1727,12 @@ function updateDetailsPanel() {
     if (!detailsPanel || isMobile()) return;
     
     if (selectedGameIndex >= 0) {
-        // Store current scroll position before updating content
+        // Check if we're switching to a different game
+        const isSwitchingGame = previousGameIndex !== selectedGameIndex && previousGameIndex !== -1;
+        
+        // Store current scroll position before updating content (only if not switching games)
         const detailsBody = detailsPanel.querySelector('.details-body');
-        const currentScrollTop = detailsBody ? detailsBody.scrollTop : 0;
+        const currentScrollTop = !isSwitchingGame && detailsBody ? detailsBody.scrollTop : 0;
         
         // Hide content during update to prevent flash
         if (detailsBody && currentScrollTop > 0) {
@@ -1672,17 +1743,23 @@ function updateDetailsPanel() {
         const game = sortedGames[selectedGameIndex]; // Use sorted games array, not original
         detailsPanel.innerHTML = createDetailsContent(game, selectedGameIndex);
         
-        // Restore scroll position immediately and show content
+        // Restore scroll position immediately and show content (only if not switching games)
         const newDetailsBody = detailsPanel.querySelector('.details-body');
-        if (newDetailsBody && currentScrollTop > 0) {
+        if (newDetailsBody && currentScrollTop > 0 && !isSwitchingGame) {
             newDetailsBody.scrollTop = currentScrollTop;
             // Use requestAnimationFrame for smoother transition
             requestAnimationFrame(() => {
                 newDetailsBody.style.opacity = '1';
             });
         }
+        
+        // Reset the previous game index after handling the switch
+        if (isSwitchingGame) {
+            previousGameIndex = selectedGameIndex;
+        }
     } else {
         detailsPanel.innerHTML = '';
+        previousGameIndex = -1; // Reset when closing details
     }
 }
 
@@ -1720,7 +1797,7 @@ function createMobileModalContent(game, gameIndex) {
         <div class="details-section">
             <div class="highlights-container">
                 <div class="video-placeholder">
-                    <div class="video-thumbnail">
+                    <div class="video-thumbnail" style="background-image: url('${getGameThumbnail(game)}'); background-size: cover; background-position: center;">
                         <div class="video-bg">
                             <div class="video-title">Game Highlights</div>
                             <div class="video-duration">4:32</div>
@@ -1800,43 +1877,12 @@ function createMobileModalContent(game, gameIndex) {
             
             <div class="details-section">
                 <h4>Recent Plays</h4>
-                ${generateExpandablePlays(details.plays, `plays-container-${Date.now()}-${Math.floor(Math.random() * 1000)}`)}
+                ${generateExpandablePlays(details.plays, `consistent-plays-container-${gameIndex}`)}
             </div>
             
             <div class="details-section">
                 <h4>Team Statistics</h4>
-                <div class="stats-grid">
-                    <div class="stats-header">
-                        <span class="stat-category">Category</span>
-                        <span class="stat-team">${game.awayTeam.shortName}</span>
-                        <span class="stat-team">${game.homeTeam.shortName}</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Total Yards</span>
-                        <span class="stat-value">342</span>
-                        <span class="stat-value">289</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Passing Yards</span>
-                        <span class="stat-value">245</span>
-                        <span class="stat-value">198</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Rushing Yards</span>
-                        <span class="stat-value">97</span>
-                        <span class="stat-value">91</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Turnovers</span>
-                        <span class="stat-value">1</span>
-                        <span class="stat-value">2</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-category">Time of Possession</span>
-                        <span class="stat-value">32:15</span>
-                        <span class="stat-value">27:45</span>
-                    </div>
-                </div>
+                ${generateTeamStatistics(game)}
             </div>
         </div>
     `;
@@ -2169,7 +2215,7 @@ function updateMobileModalDetails() {
         <div class="details-section">
             <div class="highlights-container">
                 <div class="video-placeholder">
-                    <div class="video-thumbnail">
+                    <div class="video-thumbnail" style="background-image: url('${getGameThumbnail(game)}'); background-size: cover; background-position: center;">
                         <div class="video-bg">
                             <div class="video-title">Game Highlights</div>
                             <div class="video-duration">4:32</div>
@@ -2304,8 +2350,6 @@ function createGameCard(game, gameIndex) {
            </div>`
         : '';
 
-    // Don't show hint text for Week 1
-    const hintText = selectedWeek === '1' ? '' : (isSelected ? 'Selected' : 'Tap to view details');
 
     // Use abbreviations for Week 4 or when collapsed with more than 3 columns (Week 1)
     const awayTeamName = shouldUseAbbreviations ? game.awayTeam.shortName : game.awayTeam.name;
@@ -2349,8 +2393,6 @@ function createGameCard(game, gameIndex) {
             </div>
             
             ${detailsHtml}
-            
-            <div class="select-hint">${hintText}</div>
         </div>
     `;
 }
