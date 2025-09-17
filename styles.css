@@ -266,9 +266,12 @@ body {
 .games-container.four-column-layout {
     flex: 0 0 100%; /* Take full width when no selection */
     grid-template-columns: repeat(4, minmax(220px, 1fr)); /* Fixed minimum width for cards */
-    gap: 10px;
+    grid-template-rows: repeat(auto-fit, 161px); /* Fixed row height to prevent dynamic spacing */
+    grid-row-gap: 10px !important; /* Match column spacing for even gaps */
+    grid-column-gap: 10px !important; /* Keep column spacing */
     padding: 8px 8px 40px 8px;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Same smooth transition as Week 2 */
+    align-content: start; /* Align rows to top, prevent stretching */
 }
 
 .games-container.vertical-tabs-layout {
@@ -307,7 +310,62 @@ body {
 .content-layout.has-selection .games-container.four-column-layout {
     flex: 0 0 50%;
     grid-template-columns: repeat(4, minmax(150px, 1fr));
-    gap: 6px;
+    grid-template-rows: repeat(auto-fit, 161px); /* Fixed row height when collapsed too */
+    grid-row-gap: 6px !important; /* Match compressed column spacing for even gaps */
+    grid-column-gap: 6px !important; /* Compressed column spacing */
+    align-content: start; /* Prevent stretching when collapsed */
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Same smooth transition as Week 2 */
+}
+
+/* Week 1 specific game card styling - fixed compact design */
+.games-container.four-column-layout .game-card {
+    padding: 10px 16px 6px 16px; /* Minimal padding */
+    height: 161px; /* 15% taller than 140px */
+    min-height: 161px; /* Ensure consistent minimum */
+    max-height: 161px; /* Cap maximum height */
+    box-sizing: border-box; /* Include padding in height calculation */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Distribute content evenly */
+    margin: 0; /* Reset margin */
+}
+
+.games-container.four-column-layout .select-hint {
+    display: none; /* Hide hint text for Week 1 */
+}
+
+.games-container.four-column-layout .game-details {
+    display: none; /* Hide game details for Week 1 to save space */
+}
+
+/* Aggressive spacing reduction for Week 1 cards */
+.games-container.four-column-layout .game-status {
+    margin-bottom: 6px; /* Minimal margin */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.games-container.four-column-layout .teams-container {
+    gap: 2px; /* Minimal gap between teams */
+    margin-bottom: 0; /* Remove bottom margin */
+    flex: 1; /* Take remaining space */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center teams vertically */
+}
+
+.games-container.four-column-layout .team {
+    padding: 2px 0; /* Even more minimal team padding */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.games-container.four-column-layout .team-logo {
+    width: 24px; /* Slightly smaller logos */
+    height: 24px;
+    margin-right: 10px; /* Reduced margin */
+}
+
+.games-container.four-column-layout .team-score {
+    font-size: 20px; /* Slightly smaller scores */
 }
 
 /* Game Card */
@@ -497,6 +555,15 @@ body {
 
 .game-card.live {
     background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+}
+
+/* Remove green background for live games in Week 4 vertical tabs layout */
+.vertical-tabs-layout .game-card.live {
+    background: transparent;
+}
+
+.vertical-tabs-layout .game-card.live.selected {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .game-card.live.selected {
@@ -708,6 +775,12 @@ body {
     z-index: 9999;
     transform: translateX(0);
     opacity: 1;
+    /* Override Week 4 specific styles when in fullscreen */
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.08) !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
 }
 
 .content-layout.modal-fullscreen .games-container {
@@ -1073,6 +1146,7 @@ body {
     padding: 20px;
     height: calc(90vh - 80px);
     overflow-y: auto;
+    transition: opacity 0.15s ease; /* Smooth opacity transitions for content updates */
 }
 
 .details-panel.fullscreen-modal .details-body {
@@ -1259,9 +1333,7 @@ body {
 
 /* Play by Play */
 .plays-container {
-    max-height: 300px;
-    overflow-y: auto;
-    padding-right: 8px;
+    /* Removed max-height and overflow for expandable design */
 }
 
 .play-item {
@@ -1294,6 +1366,32 @@ body {
 .play-description {
     color: #4b5563;
     line-height: 1.4;
+}
+
+/* Plays expand button */
+.plays-expand-btn {
+    background: none;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 16px auto 0 auto;
+    display: block;
+    text-align: center;
+}
+
+.plays-expand-btn:hover {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+.play-item.hidden {
+    display: none;
 }
 
 
@@ -1629,6 +1727,7 @@ body {
         padding: 0 20px 20px 20px;
         max-height: calc(90vh - 180px);
         overflow-y: auto;
+        transition: opacity 0.15s ease; /* Smooth opacity transitions for content updates */
     }
     
     .mobile-modal-body::-webkit-scrollbar {
@@ -2388,5 +2487,396 @@ body {
     
     .playing-bar:nth-child(4) {
         height: 8px;
+    }
+}
+
+/* Mobile Full Page Layout */
+.mobile-fullpage-container {
+    display: none;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    overflow-y: auto;
+}
+
+.mobile-fullpage-container.scrolled-down .mobile-condensed-scroll-container {
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
+.mobile-fullpage-container.scrolled-down .mobile-main-game-header {
+    padding: 8px 20px;
+    margin-bottom: 4px;
+    top: 61px; /* Stick to header since condensed cards are hidden */
+    min-height: auto;
+}
+
+/* These styles are now handled by the inline layout */
+
+.mobile-fullpage-container.scrolled-down .mobile-main-teams {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.mobile-fullpage-container.scrolled-down .mobile-main-status {
+    font-size: 12px;
+}
+
+/* Compact inline layout for collapsed state */
+.mobile-fullpage-container.scrolled-down .mobile-main-game-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Inline score line styling */
+.mobile-main-score-line {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+/* Hide inline score line in expanded state, show in collapsed */
+.mobile-fullpage-container:not(.scrolled-down) .mobile-main-score-line {
+    display: none;
+}
+
+.mobile-fullpage-container.scrolled-down .mobile-main-score-line {
+    display: flex;
+    margin-bottom: 4px;
+}
+
+/* Hide main logos and large elements when scrolled */
+.mobile-fullpage-container:not(.scrolled-down) .mobile-main-logos {
+    display: flex;
+}
+
+.mobile-fullpage-container.scrolled-down .mobile-main-logos {
+    display: none;
+}
+
+.mobile-fullpage-container:not(.scrolled-down) .mobile-main-game-header .mobile-main-score {
+    display: block;
+}
+
+.mobile-fullpage-container.scrolled-down .mobile-main-game-header .mobile-main-score {
+    display: none;
+}
+
+/* Compact score styling in collapsed state */
+.mobile-fullpage-container.scrolled-down .mobile-main-score-line .mobile-main-score {
+    font-size: 20px;
+    margin: 0;
+}
+
+/* Logo styling within the score line */
+.mobile-main-score-line .mobile-main-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.mobile-fullpage-header {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.mobile-back-btn {
+    background: none;
+    border: none;
+    color: #007aff;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.mobile-back-btn:hover {
+    background-color: #f1f5f9;
+}
+
+/* Condensed Score Cards Row */
+.mobile-condensed-scroll-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 20px 0;
+    position: sticky;
+    top: 61px; /* Height of header */
+    z-index: 9;
+    overflow: visible;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.mobile-condensed-cards-scroll {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 6px 16px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.mobile-condensed-cards-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.mobile-condensed-card {
+    flex: 0 0 auto;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 10px 16px;
+    min-width: 120px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    scroll-snap-align: center;
+    position: relative;
+    margin: 2px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-condensed-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.mobile-condensed-card.active {
+    border-color: #007aff;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 122, 255, 0.15);
+}
+
+.mobile-condensed-card.active::before {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: #007aff;
+    border-radius: 2px 2px 0 0;
+}
+
+.mobile-condensed-logos {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.mobile-condensed-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.mobile-condensed-score {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 3px;
+    letter-spacing: -0.5px;
+}
+
+.mobile-condensed-status {
+    font-size: 9px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mobile-condensed-status.live {
+    color: #10b981;
+}
+
+/* Main Game Header */
+.mobile-main-game-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 40px 20px;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 24px;
+    transition: padding 0.3s ease, margin-bottom 0.3s ease;
+    position: sticky;
+    top: 61px;
+    z-index: 8;
+    min-height: 200px;
+}
+
+.mobile-main-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 20px;
+    transition: gap 0.3s ease, margin-bottom 0.3s ease;
+}
+
+.mobile-main-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.mobile-main-score {
+    font-size: 48px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+    transition: font-size 0.3s ease, margin-bottom 0.3s ease;
+}
+
+.mobile-main-score-vs {
+    color: #64748b;
+    font-weight: 400;
+    margin: 0 8px;
+}
+
+.mobile-main-teams {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 12px;
+    transition: font-size 0.3s ease, margin-bottom 0.3s ease;
+}
+
+.mobile-main-vs {
+    color: #64748b;
+    font-weight: 400;
+    margin: 0 8px;
+}
+
+.mobile-main-status {
+    font-size: 16px;
+    color: #ef4444;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: font-size 0.3s ease;
+}
+
+.mobile-main-status.live {
+    color: #10b981;
+}
+
+/* Mobile Details Content */
+.mobile-details-content {
+    padding: 0 20px 40px 20px;
+}
+
+.mobile-details-section {
+    margin-bottom: 32px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    border: 1px solid #e2e8f0;
+}
+
+.mobile-details-section:last-child {
+    margin-bottom: 0;
+}
+
+.mobile-details-section h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+/* Responsive adjustments for mobile full page */
+@media (max-width: 480px) {
+    .mobile-main-score {
+        font-size: 30px;
+    }
+    
+    .mobile-main-teams {
+        font-size: 18px;
+    }
+    
+    .mobile-main-status {
+        font-size: 14px;
+    }
+    
+    .mobile-main-logo {
+        width: 56px;
+        height: 56px;
+    }
+    
+    /* Small screen collapsed states */
+    .mobile-fullpage-container.scrolled-down .mobile-main-score {
+        font-size: 10px;
+    }
+    
+    .mobile-fullpage-container.scrolled-down .mobile-main-teams {
+        font-size: 9px;
+    }
+    
+    .mobile-fullpage-container.scrolled-down .mobile-main-status {
+        font-size: 8px;
+    }
+    
+/* Logo sizing now handled by inline layout styles */
+    
+    /* Small screen inline score line styling */
+    .mobile-fullpage-container.scrolled-down .mobile-main-score-line .mobile-main-score {
+        font-size: 10px;
+    }
+    
+    .mobile-main-score-line .mobile-main-logo {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .mobile-condensed-card {
+        min-width: 80px;
+        padding: 6px 10px;
+        margin: 2px 0;
+    }
+    
+    .mobile-condensed-logo {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .mobile-condensed-score {
+        font-size: 12px;
+    }
+    
+    .mobile-condensed-status {
+        font-size: 8px;
     }
 }
