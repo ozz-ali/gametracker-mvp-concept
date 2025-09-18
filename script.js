@@ -2589,14 +2589,55 @@ function createGameCard(game, gameIndex) {
     `;
 }
 
+// Function to create a video card for Week 7
+function createVideoCard(gameIndex) {
+    const isSelected = selectedGameIndex === gameIndex;
+    
+    return `
+        <div class="game-card video-card ${isSelected ? 'selected' : ''}" 
+             data-game-index="${gameIndex}" 
+             onclick="toggleGameDetails(${gameIndex})">
+            
+            <div class="video-container">
+                <video autoplay muted loop playsinline class="game-video">
+                    <source src="https://picsum.photos/320/180.mp4" type="video/mp4">
+                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                    <!-- Fallback image if video fails to load -->
+                    <img src="https://picsum.photos/320/180?random=99" alt="Video fallback" style="width: 100%; height: 100%; object-fit: cover;">
+                </video>
+                
+                <div class="video-overlay">
+                    <div class="video-title">Game Highlights</div>
+                    <div class="video-badge">LIVE</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 // Function to populate games
 function populateGames() {
     const gamesContainer = document.getElementById('gamesContainer');
     if (!gamesContainer) return;
     
+    const weekSelect = document.getElementById('week-select');
+    const selectedWeek = weekSelect ? weekSelect.value : '1';
+    
     const sortedGames = getSortedGames();
-    const gameCardsHtml = sortedGames.map((game, index) => createGameCard(game, index)).join('');
-    gamesContainer.innerHTML = gameCardsHtml;
+    
+    if (selectedWeek === '7') {
+        // For Week 7, replace the game at index 3 (top of furthest column) with video
+        const gameCardsHtml = sortedGames.map((game, index) => {
+            if (index === 3) {
+                return createVideoCard(index);
+            }
+            return createGameCard(game, index);
+        }).join('');
+        gamesContainer.innerHTML = gameCardsHtml;
+    } else {
+        const gameCardsHtml = sortedGames.map((game, index) => createGameCard(game, index)).join('');
+        gamesContainer.innerHTML = gameCardsHtml;
+    }
 }
 
 // Initialize live updates for all live games
