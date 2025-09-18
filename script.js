@@ -2607,8 +2607,7 @@ function createVideoCard(gameIndex) {
                 </video>
                 
                 <div class="video-overlay">
-                    <div class="video-title">Game Highlights</div>
-                    <div class="video-badge">LIVE</div>
+                    <div class="video-title">Advertisement</div>
                 </div>
             </div>
         </div>
@@ -2691,6 +2690,18 @@ function updateWeekLayout() {
         // Remove Week 6 header video if not Week 6
         if (selectedWeek !== '6') {
             removeWeek6HeaderVideo();
+        }
+        
+        // Hide video rail for Week 7 to avoid duplicates
+        const videoRail = document.getElementById('videoRail');
+        if (videoRail) {
+            if (selectedWeek === '7') {
+                videoRail.style.display = 'none';
+                videoRail.classList.add('week7-hidden');
+            } else {
+                videoRail.style.display = 'block';
+                videoRail.classList.remove('week7-hidden');
+            }
         }
         
         // Special handling for Week 3 and Week 4 - Always On

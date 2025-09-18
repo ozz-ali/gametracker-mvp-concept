@@ -335,11 +335,6 @@ body {
     font-size: 12px; /* Smaller text when compressed */
 }
 
-.content-layout.has-selection .games-container.four-column-layout .video-card .video-badge {
-    padding: 2px 6px; /* Smaller badge when compressed */
-    font-size: 10px;
-}
-
 /* Week 1 and Week 7 specific game card styling - fixed compact design */
 .games-container.four-column-layout .game-card {
     padding: 10px 16px 6px 16px; /* Minimal padding */
@@ -385,7 +380,7 @@ body {
     padding: 12px;
     color: white;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
 }
 
@@ -1057,6 +1052,12 @@ body:has(.content-layout.week6-header-video) .video-rail {
 
 /* Explicit hiding with class */
 .video-rail.week6-hidden {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Hide video rail for Week 7 to avoid duplicates */
+.video-rail.week7-hidden {
     display: none !important;
     visibility: hidden !important;
 }
