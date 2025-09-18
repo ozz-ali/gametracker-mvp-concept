@@ -274,6 +274,15 @@ body {
     align-content: start; /* Align rows to top, prevent stretching */
 }
 
+.games-container.week5-with-video {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(240px, 1fr)); /* 3 columns for games */
+    gap: 12px;
+    padding: 8px 8px 40px 8px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
 .games-container.vertical-tabs-layout {
     display: flex;
     flex-direction: column;
@@ -364,6 +373,7 @@ body {
 .games-container.four-column-layout .team-score {
     font-size: 20px; /* Slightly smaller scores */
 }
+
 
 /* Game Card */
 .game-card {
@@ -724,10 +734,10 @@ body {
     opacity: 0;
     transform: translateX(20px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    height: 80vh;
+    height: 95vh;
     overflow: hidden;
     position: sticky;
-    top: 10vh;
+    top: 2.5vh;
 }
 
 .details-panel.visible {
@@ -777,6 +787,213 @@ body {
     gap: 0;
     align-items: flex-start;
 }
+
+/* Week 5 Layout - 3 columns games + 1 column video */
+.content-layout.week5-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px; /* Games container + Video column */
+    gap: 20px;
+    align-items: flex-start;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.content-layout.week5-layout .games-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 20px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+    backdrop-filter: blur(20px);
+}
+
+.content-layout.week5-layout .details-panel {
+    display: none; /* Hide details panel in Week 5 to make room for video column */
+}
+
+/* Hide floating video rail for Week 5 */
+.content-layout.week5-layout .video-rail {
+    display: none !important;
+}
+
+/* Week 5 Video Column */
+.week5-video-column {
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+    max-height: calc(100vh - 40px);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+    border: 1px solid #e2e8f0;
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Week 5 video column collapse behavior on scroll */
+.week5-video-column.scrolled {
+    max-height: 220px; /* Show only main video player when scrolled */
+}
+
+.week5-video-column.scrolled .video-playlist {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.week5-video-column:not(.scrolled) .video-playlist {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
+
+/* Details Navigation Anchors */
+.details-navigation {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.nav-anchor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 80px;
+    text-align: center;
+}
+
+.nav-anchor:hover {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.nav-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.nav-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+}
+
+.nav-anchor:hover .nav-label {
+    color: #3b82f6;
+}
+
+/* Week 6 Header Video Styles */
+.content-layout.week6-header-video .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 40px;
+    margin-bottom: 32px;
+    position: relative;
+    min-height: 135px; /* Match video height for consistent alignment */
+}
+
+.content-layout.week6-header-video .page-header h1 {
+    margin: 0;
+    flex-shrink: 0;
+    align-self: center; /* Ensure title is centered vertically */
+}
+
+.content-layout.week6-header-video .week-filter {
+    margin-bottom: 0;
+    flex-shrink: 0;
+    align-self: center; /* Ensure dropdown is centered vertically */
+}
+
+.content-layout.week6-header-video .week-filter-container {
+    display: flex;
+    align-items: center;
+}
+
+.week6-header-video-container {
+    flex: 0 0 240px;
+    max-width: 240px;
+    height: 135px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    position: relative;
+    margin-left: auto;
+}
+
+.week6-header-video-content {
+    padding: 0;
+    height: 100%;
+}
+
+.week6-header-video-content .main-video-player {
+    margin-bottom: 0;
+    border-radius: 12px;
+    box-shadow: none;
+    border: none;
+    height: 100%;
+    position: relative;
+}
+
+.week6-header-video-content .video-bg-image {
+    height: 135px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.week6-header-video-content .video-bg {
+    border-radius: 12px;
+}
+
+/* Hide playlist and header for Week 6 compact view */
+.week6-header-video-content .video-playlist {
+    display: none;
+}
+
+.week6-header-video-content .video-rail-header {
+    display: none;
+}
+
+/* Hide original video rail for Week 6 */
+.content-layout.week6-header-video ~ .video-rail {
+    display: none !important;
+}
+
+/* Alternative hiding for Week 6 video rail */
+body:has(.content-layout.week6-header-video) .video-rail {
+    display: none !important;
+}
+
+/* Explicit hiding with class */
+.video-rail.week6-hidden {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 
 .content-layout.week4-vertical-tabs::before {
     content: '';
@@ -1936,9 +2153,10 @@ body {
         padding: 8px 8px 40px 8px;
     }
     
-    /* Force 2 columns on mobile for Week 2, Week 1, and Week 4 to match other weeks */
+    /* Force 2 columns on mobile for Week 2, Week 1, Week 4, and Week 5 to match other weeks */
     .games-container.three-column-layout,
     .games-container.four-column-layout,
+    .games-container.week5-with-video,
     .games-container.vertical-tabs-layout {
         grid-template-columns: repeat(2, 1fr);
         gap: 16px;
@@ -1954,8 +2172,77 @@ body {
         z-index: auto;
     }
     
+    /* Week 5 mobile adjustments */
+    .content-layout.week5-layout {
+        display: block; /* Stack on mobile */
+        gap: 16px;
+    }
+    
+    .week5-video-column {
+        position: fixed; /* Back to floating on mobile */
+        top: auto;
+        bottom: 20px;
+        right: 20px;
+        left: auto;
+        width: 280px;
+        max-height: 400px;
+        z-index: 1000;
+    }
+    
+    .content-layout.week5-layout .video-rail {
+        display: none !important; /* Keep hidden on mobile too - use integrated column */
+    }
+    
+    /* Mobile navigation anchors */
+    .details-navigation {
+        gap: 8px;
+        padding: 16px 12px;
+        margin-bottom: 12px;
+    }
+    
+    .nav-anchor {
+        padding: 10px 12px;
+        min-width: 70px;
+        gap: 3px;
+    }
+    
+    .nav-icon {
+        font-size: 16px;
+    }
+    
+    .nav-label {
+        font-size: 11px;
+    }
+    
     .content-layout.week4-vertical-tabs {
         position: static;
+    }
+    
+    /* Mobile Week 6 Header Video */
+    .content-layout.week6-header-video .page-header {
+        flex-direction: column;
+        gap: 20px;
+        align-items: stretch;
+    }
+    
+    .week6-header-video-container {
+        flex: 1;
+        max-width: 100%;
+        height: 200px;
+        margin-left: 0;
+        order: 3; /* Place video below header and week filter */
+    }
+    
+    .week6-header-video-content .video-bg-image {
+        height: 200px;
+    }
+    
+    .content-layout.week6-header-video .page-header h1 {
+        order: 1;
+    }
+    
+    .content-layout.week6-header-video .week-filter {
+        order: 2;
     }
     
     .content-layout.week4-vertical-tabs::before {
@@ -2255,9 +2542,11 @@ body {
     overflow: hidden;
 }
 
+
 .video-rail.collapsed {
     max-height: 56px;
 }
+
 
 .video-rail.collapsed .video-rail-content {
     opacity: 0;
@@ -2876,6 +3165,118 @@ body {
 }
 
 .mobile-condensed-status.live {
+    color: #10b981;
+}
+
+/* Desktop Condensed Score Cards Row */
+.desktop-condensed-scroll-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 20px 0;
+    overflow: visible;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    /* Hide by default, only show in fullscreen modal */
+    display: none;
+}
+
+/* Only show desktop condensed cards in fullscreen modal */
+.details-panel.fullscreen-modal .desktop-condensed-scroll-container {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.desktop-condensed-cards-scroll {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 6px 24px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.desktop-condensed-cards-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.desktop-condensed-card {
+    flex: 0 0 auto;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 12px 18px;
+    min-width: 130px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    scroll-snap-align: center;
+    position: relative;
+    margin: 2px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.desktop-condensed-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.desktop-condensed-card.active {
+    border-color: #007aff;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 122, 255, 0.15);
+}
+
+.desktop-condensed-card.active::before {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: #007aff;
+    border-radius: 2px 2px 0 0;
+}
+
+.desktop-condensed-logos {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.desktop-condensed-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+}
+
+.desktop-condensed-score {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+}
+
+.desktop-condensed-status {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.desktop-condensed-status.live {
     color: #10b981;
 }
 

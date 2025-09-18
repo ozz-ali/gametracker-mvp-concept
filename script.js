@@ -847,8 +847,58 @@ function createDetailsContent(game, gameIndex) {
     const weekSelect = document.getElementById('week-select');
     const selectedWeek = weekSelect ? weekSelect.value : '1';
     const isAlwaysOnMode = selectedWeek === '3' || selectedWeek === '4';
+    const isLive = isGameLive(game);
+    
+    // Create navigation anchors
+    const navigationAnchors = `
+        <div class="details-navigation">
+            <div class="nav-anchor" onclick="scrollToSection('boxscore-section')">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Box Score</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('plays-section')">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-label">Plays</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('stats-section')">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Team Stats</span>
+            </div>
+        </div>
+    `;
+    
+    // Create condensed score cards for desktop fullscreen modal
+    const condensedCards = sortedGames.map((g, i) => {
+        const isActive = i === gameIndex;
+        const liveGame = isGameLive(g);
+        const statusClass = liveGame ? 'live' : '';
+        
+        return `
+            <div class="desktop-condensed-card ${isActive ? 'active' : ''}" onclick="switchDesktopGame(${i})">
+                <div class="desktop-condensed-logos">
+                    <img src="${teamLogos[g.awayTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + g.awayTeam.shortName}" alt="${g.awayTeam.name} logo" class="desktop-condensed-logo">
+                    <img src="${teamLogos[g.homeTeam.logo] || 'https://via.placeholder.com/24x24/666/fff?text=' + g.homeTeam.shortName}" alt="${g.homeTeam.name} logo" class="desktop-condensed-logo">
+                </div>
+                <div class="desktop-condensed-score">
+                    <span>${g.awayTeam.score}</span>-<span>${g.homeTeam.score}</span>
+                </div>
+                <div class="desktop-condensed-status ${statusClass}">${g.status.main}</div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add condensed cards row only when in fullscreen modal (will be hidden in normal view via CSS)
+    const condensedCardsRow = `
+        <div class="desktop-condensed-scroll-container">
+            <div class="desktop-condensed-cards-scroll" id="desktopCondensedScroll">
+                ${condensedCards}
+            </div>
+        </div>
+    `;
     
     return `
+        ${condensedCardsRow}
+        
         <div class="details-header">
             ${!isAlwaysOnMode ? '<button class="close-btn" onclick="closeGameDetails()" aria-label="Close details">&times;</button>' : ''}
             <div class="details-title">
@@ -875,9 +925,12 @@ function createDetailsContent(game, gameIndex) {
         </div>
         
         <div class="details-body">
+            ${isLive ? navigationAnchors : ''}
             ${highlightsSection}
+            ${isGameFinished ? navigationAnchors : ''}
             
-            <div class="details-section">
+            <div class="details-section" id="boxscore-section">
+                <h4>Box Score</h4>
                 <table class="score-table">
                     <thead>
                         <tr><th>Team</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th><th>Total</th></tr>
@@ -913,12 +966,12 @@ function createDetailsContent(game, gameIndex) {
                 </table>
             </div>
             
-            <div class="details-section">
+            <div class="details-section" id="plays-section">
                 <h4>Recent Plays</h4>
                 ${generateExpandablePlays(details.plays, `consistent-plays-container-${gameIndex}`)}
             </div>
             
-            <div class="details-section">
+            <div class="details-section" id="stats-section">
                 <h4>Team Statistics</h4>
                 ${generateTeamStatistics(game)}
             </div>
@@ -1057,6 +1110,11 @@ function toggleFullscreenModal() {
         if (videoRail) {
             videoRail.style.display = 'none';
         }
+        
+        // Center the selected desktop condensed card after a brief delay
+        setTimeout(() => {
+            centerSelectedDesktopCard();
+        }, 100);
     } else {
         // Return to normal view
         detailsPanel.classList.remove('fullscreen-modal');
@@ -1185,10 +1243,65 @@ function switchMobileGame(newIndex) {
     }
 }
 
+// Switch to a different game in desktop fullscreen modal
+function switchDesktopGame(newIndex) {
+    const sortedGames = getSortedGames();
+    
+    if (newIndex >= 0 && newIndex < sortedGames.length && newIndex !== selectedGameIndex) {
+        selectedGameIndex = newIndex;
+        
+        // Update the details panel content if in fullscreen modal
+        const detailsPanel = document.getElementById('detailsPanel');
+        if (detailsPanel && detailsPanel.classList.contains('fullscreen-modal')) {
+            // Store current condensed cards scroll position to preserve it
+            const condensedScroll = detailsPanel.querySelector('.desktop-condensed-cards-scroll');
+            const condensedScrollLeft = condensedScroll ? condensedScroll.scrollLeft : 0;
+            
+            const game = sortedGames[newIndex];
+            detailsPanel.innerHTML = createDetailsContent(game, selectedGameIndex);
+            
+            // Restore the scroll position - don't auto-center when browsing condensed cards
+            const newCondensedScroll = detailsPanel.querySelector('.desktop-condensed-cards-scroll');
+            if (newCondensedScroll && condensedScrollLeft > 0) {
+                newCondensedScroll.scrollLeft = condensedScrollLeft;
+            }
+            
+            // Scroll details body to top when switching games
+            const detailsBody = detailsPanel.querySelector('.details-body');
+            if (detailsBody) {
+                detailsBody.scrollTop = 0;
+            }
+        }
+        
+        // Start live updates if it's a live game
+        const game = sortedGames[newIndex];
+        if (isGameLive(game)) {
+            startLiveUpdates(selectedGameIndex);
+        }
+    }
+}
+
 // Center the selected condensed card
 function centerSelectedCondensedCard() {
     const scrollContainer = document.getElementById('mobileCondensedScroll');
     const activeCard = scrollContainer?.querySelector('.mobile-condensed-card.active');
+    
+    if (scrollContainer && activeCard) {
+        const containerWidth = scrollContainer.offsetWidth;
+        const cardWidth = activeCard.offsetWidth;
+        const scrollLeft = activeCard.offsetLeft - (containerWidth / 2) + (cardWidth / 2);
+        
+        scrollContainer.scrollTo({
+            left: scrollLeft,
+            behavior: 'smooth'
+        });
+    }
+}
+
+// Center the selected desktop condensed card
+function centerSelectedDesktopCard() {
+    const scrollContainer = document.getElementById('desktopCondensedScroll');
+    const activeCard = scrollContainer?.querySelector('.desktop-condensed-card.active');
     
     if (scrollContainer && activeCard) {
         const containerWidth = scrollContainer.offsetWidth;
@@ -1305,6 +1418,25 @@ function createMobileFullPageLayout(game, gameIndex) {
     const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
     const details = getGameDetails(game, originalIndex);
     const isGameFinished = game.status.main.includes('FINAL');
+    const isLive = isGameLive(game);
+    
+    // Create navigation anchors
+    const navigationAnchors = `
+        <div class="details-navigation">
+            <div class="nav-anchor" onclick="scrollToSection('boxscore-section')">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Box Score</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('plays-section')">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-label">Plays</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('stats-section')">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Team Stats</span>
+            </div>
+        </div>
+    `;
     
     // Create condensed score cards for top row
     const condensedCards = sortedGames.map((g, i) => {
@@ -1397,9 +1529,11 @@ function createMobileFullPageLayout(game, gameIndex) {
         </div>
         
         <div class="mobile-details-content">
+            ${isLive ? navigationAnchors : ''}
             ${highlightsSection}
+            ${isGameFinished ? navigationAnchors : ''}
             
-            <div class="mobile-details-section">
+            <div class="mobile-details-section" id="boxscore-section">
                 <table class="score-table">
                     <thead>
                         <tr><th>Team</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th><th>Total</th></tr>
@@ -1435,12 +1569,12 @@ function createMobileFullPageLayout(game, gameIndex) {
                 </table>
             </div>
             
-            <div class="mobile-details-section">
+            <div class="mobile-details-section" id="plays-section">
                 <h4>Recent Plays</h4>
                 ${generateExpandablePlays(details.plays, `mobile-plays-container-${gameIndex}`)}
             </div>
             
-            <div class="mobile-details-section">
+            <div class="mobile-details-section" id="stats-section">
                 <h4>Team Statistics</h4>
                 ${generateTeamStatistics(game)}
             </div>
@@ -1454,6 +1588,25 @@ function createFullPageLayout(game, gameIndex) {
     const originalIndex = nflGames.findIndex(g => g === sortedGames[gameIndex]);
     const details = getGameDetails(game, originalIndex);
     const isGameFinished = game.status.main.includes('FINAL');
+    const isLive = isGameLive(game);
+    
+    // Create navigation anchors
+    const navigationAnchors = `
+        <div class="details-navigation">
+            <div class="nav-anchor" onclick="scrollToSection('boxscore-section')">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Box Score</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('plays-section')">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-label">Plays</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('stats-section')">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Team Stats</span>
+            </div>
+        </div>
+    `;
     
     const highlightsSection = isGameFinished ? `
         <div class="details-section">
@@ -1502,9 +1655,11 @@ function createFullPageLayout(game, gameIndex) {
             </div>
             
             <div class="fullpage-body">
+                ${isLive ? navigationAnchors : ''}
                 ${highlightsSection}
+                ${isGameFinished ? navigationAnchors : ''}
                 
-                <div class="details-section">
+                <div class="details-section" id="boxscore-section">
                     <table class="score-table">
                         <thead>
                             <tr><th>Team</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th><th>Total</th></tr>
@@ -1652,12 +1807,12 @@ function createFullPageContent(game, gameIndex) {
                 </table>
             </div>
             
-            <div class="details-section">
+            <div class="details-section" id="plays-section">
                 <h4>Recent Plays</h4>
                 ${generateExpandablePlays(details.plays, `consistent-plays-container-${gameIndex}`)}
             </div>
             
-            <div class="details-section">
+            <div class="details-section" id="stats-section">
                 <h4>Team Statistics</h4>
                 ${generateTeamStatistics(game)}
             </div>
@@ -1734,6 +1889,10 @@ function updateDetailsPanel() {
         const detailsBody = detailsPanel.querySelector('.details-body');
         const currentScrollTop = !isSwitchingGame && detailsBody ? detailsBody.scrollTop : 0;
         
+        // Store current condensed cards scroll position to preserve it during updates
+        const condensedScroll = detailsPanel.querySelector('.desktop-condensed-cards-scroll');
+        const condensedScrollLeft = condensedScroll ? condensedScroll.scrollLeft : 0;
+        
         // Hide content during update to prevent flash
         if (detailsBody && currentScrollTop > 0) {
             detailsBody.style.opacity = '0';
@@ -1743,14 +1902,27 @@ function updateDetailsPanel() {
         const game = sortedGames[selectedGameIndex]; // Use sorted games array, not original
         detailsPanel.innerHTML = createDetailsContent(game, selectedGameIndex);
         
-        // Restore scroll position immediately and show content (only if not switching games)
+        // Restore scroll positions immediately
         const newDetailsBody = detailsPanel.querySelector('.details-body');
+        const newCondensedScroll = detailsPanel.querySelector('.desktop-condensed-cards-scroll');
+        
+        // Restore details body scroll position (only if not switching games)
         if (newDetailsBody && currentScrollTop > 0 && !isSwitchingGame) {
             newDetailsBody.scrollTop = currentScrollTop;
             // Use requestAnimationFrame for smoother transition
             requestAnimationFrame(() => {
                 newDetailsBody.style.opacity = '1';
             });
+        }
+        
+        // Restore condensed cards scroll position (preserve user's scroll state)
+        if (newCondensedScroll && condensedScrollLeft > 0) {
+            newCondensedScroll.scrollLeft = condensedScrollLeft;
+        } else if (newCondensedScroll && isSwitchingGame) {
+            // Only auto-center when switching games, not during live updates
+            setTimeout(() => {
+                centerSelectedDesktopCard();
+            }, 100);
         }
         
         // Reset the previous game index after handling the switch
@@ -1792,6 +1964,24 @@ function createMobileModalContent(game, gameIndex) {
     const details = getGameDetails(game, originalIndex);
     const isGameFinished = game.status.main.includes('FINAL');
     const isLive = isGameLive(game);
+    
+    // Create navigation anchors
+    const navigationAnchors = `
+        <div class="details-navigation">
+            <div class="nav-anchor" onclick="scrollToSection('boxscore-section')">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Box Score</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('plays-section')">
+                <span class="nav-icon">⚡</span>
+                <span class="nav-label">Plays</span>
+            </div>
+            <div class="nav-anchor" onclick="scrollToSection('stats-section')">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Team Stats</span>
+            </div>
+        </div>
+    `;
     
     const highlightsSection = isGameFinished ? `
         <div class="details-section">
@@ -1837,9 +2027,11 @@ function createMobileModalContent(game, gameIndex) {
         </div>
         
         <div class="mobile-modal-body">
+            ${isLive ? navigationAnchors : ''}
             ${highlightsSection}
+            ${isGameFinished ? navigationAnchors : ''}
             
-            <div class="details-section">
+            <div class="details-section" id="boxscore-section">
                 <table class="score-table">
                     <thead>
                         <tr><th>Team</th><th>1st</th><th>2nd</th><th>3rd</th><th>4th</th><th>Total</th></tr>
@@ -1875,12 +2067,12 @@ function createMobileModalContent(game, gameIndex) {
                 </table>
             </div>
             
-            <div class="details-section">
+            <div class="details-section" id="plays-section">
                 <h4>Recent Plays</h4>
                 ${generateExpandablePlays(details.plays, `consistent-plays-container-${gameIndex}`)}
             </div>
             
-            <div class="details-section">
+            <div class="details-section" id="stats-section">
                 <h4>Team Statistics</h4>
                 ${generateTeamStatistics(game)}
             </div>
@@ -2427,8 +2619,8 @@ function updateWeekLayout() {
         const selectedWeek = weekSelect.value;
         
         // Remove all layout classes first
-        gamesContainer.classList.remove('two-column-layout', 'three-column-layout', 'four-column-layout', 'vertical-tabs-layout');
-        contentLayout.classList.remove('week4-vertical-tabs');
+        gamesContainer.classList.remove('two-column-layout', 'three-column-layout', 'four-column-layout', 'vertical-tabs-layout', 'week5-with-video');
+        contentLayout.classList.remove('week4-vertical-tabs', 'week5-layout', 'week6-header-video');
         
         // Apply appropriate layout for each week
         if (selectedWeek === '1') {
@@ -2438,8 +2630,26 @@ function updateWeekLayout() {
         } else if (selectedWeek === '4') {
             gamesContainer.classList.add('vertical-tabs-layout');
             contentLayout.classList.add('week4-vertical-tabs');
+        } else if (selectedWeek === '5') {
+            gamesContainer.classList.add('week5-with-video');
+            contentLayout.classList.add('week5-layout');
+            addWeek5VideoColumn();
+        } else if (selectedWeek === '6') {
+            gamesContainer.classList.add('two-column-layout');
+            contentLayout.classList.add('week6-header-video');
+            addWeek6HeaderVideo();
         } else {
             gamesContainer.classList.add('two-column-layout');
+        }
+        
+        // Remove Week 5 video column if not Week 5
+        if (selectedWeek !== '5') {
+            removeWeek5VideoColumn();
+        }
+        
+        // Remove Week 6 header video if not Week 6
+        if (selectedWeek !== '6') {
+            removeWeek6HeaderVideo();
         }
         
         // Special handling for Week 3 and Week 4 - Always On
@@ -2531,6 +2741,166 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize video rail
     initializeVideoRail();
 });
+
+// Scroll to section functionality for navigation anchors
+function scrollToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        // Get the details body container for smooth scrolling
+        const detailsBody = document.querySelector('.details-body');
+        if (detailsBody) {
+            const sectionTop = section.offsetTop - detailsBody.offsetTop - 20; // Add some offset
+            detailsBody.scrollTo({
+                top: sectionTop,
+                behavior: 'smooth'
+            });
+        }
+    }
+}
+
+// Week 5 Video Column Management
+function addWeek5VideoColumn() {
+    const contentLayout = document.getElementById('contentLayout');
+    if (!contentLayout) return;
+    
+    // Remove existing video column if present
+    removeWeek5VideoColumn();
+    
+    // Reset scroll state for fresh start
+    week5HasScrolled = false;
+    
+    // Hide the floating video rail completely for Week 5
+    const existingVideoRail = document.getElementById('videoRail');
+    if (existingVideoRail) {
+        existingVideoRail.style.display = 'none';
+    }
+    
+    // Create video column
+    const videoColumn = document.createElement('div');
+    videoColumn.id = 'week5VideoColumn';
+    videoColumn.className = 'week5-video-column'; // Start without 'scrolled' class = expanded state
+    
+    // Get video rail content from existing rail
+    if (existingVideoRail) {
+        const videoRailContent = existingVideoRail.querySelector('.video-rail-content');
+        if (videoRailContent) {
+            videoColumn.innerHTML = videoRailContent.outerHTML;
+        }
+    }
+    
+    // Add to content layout
+    contentLayout.appendChild(videoColumn);
+    
+    // Initialize scroll behavior for Week 5 video column
+    initializeWeek5ScrollBehavior();
+}
+
+function removeWeek5VideoColumn() {
+    const existingVideoColumn = document.getElementById('week5VideoColumn');
+    if (existingVideoColumn) {
+        existingVideoColumn.remove();
+    }
+    
+    // Restore the floating video rail when leaving Week 5
+    const existingVideoRail = document.getElementById('videoRail');
+    if (existingVideoRail) {
+        existingVideoRail.style.display = 'block';
+    }
+    
+    // Reset scroll state
+    week5HasScrolled = false;
+    
+    // Clean up scroll listener
+    if (week5ScrollTimeout) {
+        clearTimeout(week5ScrollTimeout);
+        week5ScrollTimeout = null;
+    }
+    window.removeEventListener('scroll', handleWeek5Scroll);
+}
+
+// Week 5 scroll behavior for video column collapse
+let week5ScrollTimeout;
+let week5HasScrolled = false; // Track if user has scrolled at all
+
+function handleWeek5Scroll() {
+    const weekSelect = document.getElementById('week-select');
+    const selectedWeek = weekSelect ? weekSelect.value : '1';
+    
+    // Only apply scroll behavior for Week 5
+    if (selectedWeek !== '5') return;
+    
+    const videoColumn = document.getElementById('week5VideoColumn');
+    if (!videoColumn) return;
+    
+    const scrollY = window.scrollY;
+    
+    // Once user scrolls for the first time, collapse and keep collapsed
+    if (scrollY > 50 && !week5HasScrolled) {
+        week5HasScrolled = true;
+        videoColumn.classList.add('scrolled');
+    }
+    
+    // If user has scrolled before, keep it collapsed
+    if (week5HasScrolled) {
+        videoColumn.classList.add('scrolled');
+    }
+}
+
+// Initialize Week 5 scroll behavior
+function initializeWeek5ScrollBehavior() {
+    // Remove existing listener if any
+    window.removeEventListener('scroll', handleWeek5Scroll);
+    
+    // Add scroll listener
+    window.addEventListener('scroll', handleWeek5Scroll, { passive: true });
+}
+
+// Week 6 Header Video Management
+function addWeek6HeaderVideo() {
+    const pageHeader = document.querySelector('.page-header');
+    if (!pageHeader) return;
+    
+    // Remove existing video if present
+    removeWeek6HeaderVideo();
+    
+    // Create header video container
+    const headerVideoContainer = document.createElement('div');
+    headerVideoContainer.id = 'week6HeaderVideo';
+    headerVideoContainer.className = 'week6-header-video-container';
+    
+    // Get video content from existing video rail
+    const existingVideoRail = document.getElementById('videoRail');
+    if (existingVideoRail) {
+        const videoRailContent = existingVideoRail.querySelector('.video-rail-content');
+        if (videoRailContent) {
+            // Clone the video content for the header
+            const headerVideoContent = videoRailContent.cloneNode(true);
+            headerVideoContent.className = 'week6-header-video-content';
+            headerVideoContainer.appendChild(headerVideoContent);
+        }
+        
+        // Hide the original video rail for Week 6
+        existingVideoRail.style.display = 'none';
+        existingVideoRail.classList.add('week6-hidden');
+    }
+    
+    // Add to header
+    pageHeader.appendChild(headerVideoContainer);
+}
+
+function removeWeek6HeaderVideo() {
+    const existingHeaderVideo = document.getElementById('week6HeaderVideo');
+    if (existingHeaderVideo) {
+        existingHeaderVideo.remove();
+    }
+    
+    // Restore the original video rail when leaving Week 6
+    const existingVideoRail = document.getElementById('videoRail');
+    if (existingVideoRail) {
+        existingVideoRail.style.display = 'block';
+        existingVideoRail.classList.remove('week6-hidden');
+    }
+}
 
 // Video Rail Functionality
 let videoRailCollapsed = false;
