@@ -1861,9 +1861,9 @@ function updateLayoutClasses() {
         contentLayout.classList.remove('has-selection');
         if (detailsPanel) detailsPanel.classList.remove('visible');
         
-        // Add special class for Week 1 or Week 2 when no selection
+        // Add special class for Week 1, Week 2, or Week 7 when no selection
         if (weekSelect) {
-            if (weekSelect.value === '1') {
+            if (weekSelect.value === '1' || weekSelect.value === '7') {
                 contentLayout.classList.add('week1-no-selection');
                 contentLayout.classList.remove('week2-no-selection');
             } else if (weekSelect.value === '2') {
@@ -2524,7 +2524,7 @@ function createGameCard(game, gameIndex) {
     const weekSelect = document.getElementById('week-select');
     const selectedWeek = weekSelect ? weekSelect.value : '1';
     const isCollapsed = selectedGameIndex >= 0 && !isMobile();
-    const hasMoreThan3Columns = selectedWeek === '1'; // Week 1 has 4 columns
+    const hasMoreThan3Columns = selectedWeek === '1' || selectedWeek === '7'; // Week 1 and Week 7 have 4 columns
     const isWeek4 = selectedWeek === '4'; // Week 4 vertical tabs
     const shouldUseAbbreviations = (isCollapsed && hasMoreThan3Columns) || isWeek4;
     
@@ -2543,7 +2543,7 @@ function createGameCard(game, gameIndex) {
         : '';
 
 
-    // Use abbreviations for Week 4 or when collapsed with more than 3 columns (Week 1)
+    // Use abbreviations for Week 4 or when collapsed with more than 3 columns (Week 1 and Week 7)
     const awayTeamName = shouldUseAbbreviations ? game.awayTeam.shortName : game.awayTeam.name;
     const homeTeamName = shouldUseAbbreviations ? game.homeTeam.shortName : game.homeTeam.name;
     
@@ -2623,7 +2623,7 @@ function updateWeekLayout() {
         contentLayout.classList.remove('week4-vertical-tabs', 'week5-layout', 'week6-header-video');
         
         // Apply appropriate layout for each week
-        if (selectedWeek === '1') {
+        if (selectedWeek === '1' || selectedWeek === '7') {
             gamesContainer.classList.add('four-column-layout');
         } else if (selectedWeek === '2') {
             gamesContainer.classList.add('three-column-layout');
